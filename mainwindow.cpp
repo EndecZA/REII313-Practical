@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include <QPixmap>
+#include <QDebug>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -11,7 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     Background = new QLabel(this);
         Background->setGeometry(0, 0, 800, 600);
-        Background->setPixmap(QPixmap("G:/My Drive/North-West University/Year 3/Semester 1/REII313/Practical/REII313-Practical/Logo.png"));
+        Background->setPixmap(QPixmap(":/images/Logo.png"));
         Background->setScaledContents(true); // Scale image to fit label
         Background->lower(); // Keep behind other widgets
 
