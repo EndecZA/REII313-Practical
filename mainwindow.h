@@ -2,8 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QPushButton>
 #include <QLabel>
+#include <QPushButton>
 
 class MainWindow : public QMainWindow
 {
@@ -13,13 +13,14 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private:
-    QPushButton *SinglePlayerBtn, *MultiPlayerBtn;
-    QLabel *Background;
-
 private slots:
-// void SinglePlayerClicked();
-// void MultiPLayerClicked();
+    void onSinglePlayerClicked();
+    void onMultiPlayerClicked();
 
+private:
+    QLabel *Background;
+    QPushButton *SinglePlayerBtn;
+    QPushButton *MultiPlayerBtn;
 };
+
 #endif // MAINWINDOW_H

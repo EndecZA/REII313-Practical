@@ -10,10 +10,14 @@ CONFIG += c++11
 
 SOURCES += \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    multiplayeroptionsdialog.cpp \
+    singleplayeroptionsdialog.cpp
 
 HEADERS += \
-    mainwindow.h
+    mainwindow.h \
+    multiplayeroptionsdialog.h \
+    singleplayeroptionsdialog.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
