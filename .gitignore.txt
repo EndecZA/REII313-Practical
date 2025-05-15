@@ -1,0 +1,26 @@
+# Qt Creator user-specific files
+*.pro.user
+*.pro.user.*
+*.autosave
+
+# Qt build artifacts
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.a
+*.lib
+
+# Qt Creator build folders
+build-*/
+debug/
+release/
+
+# macOS and Linux extras
+.DS_Store
+*.swp
+*~
+
+# Windows extras
+Thumbs.db
