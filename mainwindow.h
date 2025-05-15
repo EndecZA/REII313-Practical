@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QPushButton>
+#include <QLabel>
 
 class MainWindow : public QMainWindow
 {
@@ -14,6 +15,7 @@ public:
 
 private:
     QPushButton *SinglePlayerBtn, *MultiPlayerBtn;
+    QLabel *Background;
 
 private slots:
 // void SinglePlayerClicked();
