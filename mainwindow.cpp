@@ -1,0 +1,27 @@
+#include "mainwindow.h"
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+{
+    setFixedSize(800,600);
+    setMouseTracking(true);
+
+    SinglePlayerBtn = new QPushButton(this);
+    SinglePlayerBtn->setFixedSize(700,75);
+    SinglePlayerBtn->setText("Singleplayer");
+    SinglePlayerBtn->move(50,200);
+  //  connect(SinglePlayerBtn, SIGNAL(clicked()),this,SLOT(SinglePlayerClicked()));
+
+    MultiPlayerBtn = new QPushButton(this);
+    MultiPlayerBtn->setFixedSize(700,75);
+    MultiPlayerBtn->setText("Multiplayer");
+    MultiPlayerBtn->move(50,300);
+  //  connect(MultiPlayerBtn, SIGNAL(clicked()),this,SLOT(MultiPlayerClicked()));
+
+}
+
+MainWindow::~MainWindow()
+{
+}
+
+
