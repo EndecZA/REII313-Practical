@@ -1,10 +1,16 @@
 #include "mainwindow.h"
 
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     setFixedSize(800,600);
     setMouseTracking(true);
+    
+   // Background = new QLabel(this);
+  //  setCentralWidget(Background);
+   // B
+    
 
     SinglePlayerBtn = new QPushButton(this);
     SinglePlayerBtn->setFixedSize(700,75);
