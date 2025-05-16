@@ -10,6 +10,8 @@ class SinglePlayerOptionsDialog : public QDialog
 
 public:
     explicit SinglePlayerOptionsDialog(QWidget *parent = nullptr);
+    QString getSelectedDifficulty() const { return selectedDifficulty; }
+    QString getSelectedMap() const { return selectedMap; }
 
 private slots:
     void onNewGameClicked();
@@ -18,6 +20,8 @@ private slots:
 private:
     QPushButton *newGameBtn;
     QPushButton *loadGameBtn;
+    QString selectedDifficulty;
+    QString selectedMap;
 };
 
 #endif // SINGLEPLAYEROPTIONSDIALOG_H

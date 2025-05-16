@@ -1,4 +1,5 @@
 #include "singleplayeroptionsdialog.h"
+#include "newgamesettingsdialog.h"
 #include <QVBoxLayout>
 #include <QDebug>
 
@@ -8,13 +9,10 @@ SinglePlayerOptionsDialog::SinglePlayerOptionsDialog(QWidget *parent)
     setFixedSize(400, 300);
     setWindowTitle("Singleplayer Options");
 
-    // Set background color to match MainWindow
     setStyleSheet("QDialog { background-color: rgba(18, 28, 39, 255); }");
 
-    // Create layout
     QVBoxLayout *layout = new QVBoxLayout(this);
 
-    // New Game button
     newGameBtn = new QPushButton("New Game", this);
     newGameBtn->setFixedSize(300, 75);
     newGameBtn->setStyleSheet(
@@ -32,7 +30,6 @@ SinglePlayerOptionsDialog::SinglePlayerOptionsDialog(QWidget *parent)
     connect(newGameBtn, &QPushButton::clicked, this, &SinglePlayerOptionsDialog::onNewGameClicked);
     layout->addWidget(newGameBtn);
 
-    // Load Game button
     loadGameBtn = new QPushButton("Load Game", this);
     loadGameBtn->setFixedSize(300, 75);
     loadGameBtn->setStyleSheet(
@@ -50,23 +47,24 @@ SinglePlayerOptionsDialog::SinglePlayerOptionsDialog(QWidget *parent)
     connect(loadGameBtn, &QPushButton::clicked, this, &SinglePlayerOptionsDialog::onLoadGameClicked);
     layout->addWidget(loadGameBtn);
 
-    // Center buttons vertically
     layout->setAlignment(Qt::AlignCenter);
     layout->setSpacing(20);
-
     setLayout(layout);
 }
 
 void SinglePlayerOptionsDialog::onNewGameClicked()
 {
-    qDebug() << "New Game selected";
-    accept(); // Close dialog with "accepted" status
-    // Add logic for starting a new game here
+    NewGameSettingsDialog settingsDialog(this);
+    if (settingsDialog.exec() == QDialog::Accepted) {
+        selectedDifficulty = settingsDialog.getSelectedDifficulty();
+        selectedMap = settingsDialog.getSelectedMap();
+        qDebug() << "New Game - Difficulty:" << selectedDifficulty << ", Map:" << selectedMap;
+        accept(); // Close SinglePlayerOptionsDialog
+    }
 }
 
 void SinglePlayerOptionsDialog::onLoadGameClicked()
 {
     qDebug() << "Load Game selected";
-    accept(); // Close dialog with "accepted" status
-    // Add logic for loading a game here
+    accept();
 }

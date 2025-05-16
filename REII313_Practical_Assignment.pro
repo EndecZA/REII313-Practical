@@ -12,11 +12,13 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     multiplayeroptionsdialog.cpp \
+    newgamesettingsdialog.cpp \
     singleplayeroptionsdialog.cpp
 
 HEADERS += \
     mainwindow.h \
     multiplayeroptionsdialog.h \
+    newgamesettingsdialog.h \
     singleplayeroptionsdialog.h
 
 # Default rules for deployment.

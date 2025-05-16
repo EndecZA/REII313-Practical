@@ -21,6 +21,8 @@ private:
     QLabel *Background;
     QPushButton *SinglePlayerBtn;
     QPushButton *MultiPlayerBtn;
+    QString gameDifficulty; // Store difficulty
+    QString gameMap;       // Store map
 };
 
 #endif // MAINWINDOW_H
