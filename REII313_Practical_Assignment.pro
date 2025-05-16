@@ -30,4 +30,4 @@ DISTFILES += \
     ../../Logo.png
 
 RESOURCES += \
-    Resources.qrc
+    resources.qrc

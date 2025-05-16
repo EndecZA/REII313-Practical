@@ -1,8 +1,6 @@
 <RCC>
-    <qresource prefix="/images">
-        <file>Logo.png</file>
-    </qresource>
-    <qresource prefix="/fonts">
-        <file>PressStart2P-Regular.ttf</file>
+    <qresource prefix="/resources">
+        <file>images/Logo.png</file>
+        <file>fonts/PressStart2P-Regular.ttf</file>
     </qresource>
 </RCC>
