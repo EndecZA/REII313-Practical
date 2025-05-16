@@ -12,7 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
     setMouseTracking(true);
 
     // Load custom font (Press Start 2P)
-    int fontId = QFontDatabase().addApplicationFont(":/resources/fonts/PressStart2P-Regular.ttf");
+    QFontDatabase().addApplicationFont(":/resources/fonts/PressStart2P-Regular.ttf");
 
     // Background QLabel
     Background = new QLabel(this);
