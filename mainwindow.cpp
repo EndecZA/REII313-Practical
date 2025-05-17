@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "singleplayeroptionsdialog.h"
 #include "multiplayeroptionsdialog.h"
+
 #include <QPixmap>
 #include <QFontDatabase>
 #include <QDebug>
@@ -59,6 +60,7 @@ MainWindow::MainWindow(QWidget *parent)
         "   background-color: #FF8C00;"
         "}");
     connect(MultiPlayerBtn, &QPushButton::clicked, this, &MainWindow::onMultiPlayerClicked);
+
 }
 
 void MainWindow::onSinglePlayerClicked()
@@ -67,48 +69,46 @@ void MainWindow::onSinglePlayerClicked()
     if (dialog.exec() == QDialog::Accepted) {
         gameDifficulty = dialog.getSelectedDifficulty();
         gameMap = dialog.getSelectedMap();
-        if (!gameDifficulty.isEmpty() && !gameMap.isEmpty()) {
+        if (gameDifficulty != -1 && gameMap != -1) {
             // Example switch case for difficulty
-            qDebug() << "Starting new game with Difficulty:" << gameDifficulty << ", Map:" << gameMap;
-            QString difficulty = gameDifficulty.toLower();
-            switch (difficulty.at(0).toLatin1()) {
-            case 'e': // Easy
-                qDebug() << "Configuring game for Easy difficulty";
+            qDebug() << "MainWindow: Starting new game with Difficulty:" << gameDifficulty << ", Map:" << gameMap;
+            switch (gameDifficulty) {
+            case 0: // Easy
+                qDebug() << "MainWindow: Configuring game for Easy difficulty";
                 // Set game parameters (e.g., enemy strength, lives)
                 break;
-            case 'm': // Medium
-                qDebug() << "Configuring game for Medium difficulty";
+            case 1: // Medium
+                qDebug() << "MainWindow: Configuring game for Medium difficulty";
                 // Set game parameters
                 break;
-            case 'h': // Hard
-                qDebug() << "Configuring game for Hard difficulty";
+            case 2: // Hard
+                qDebug() << "MainWindow: Configuring game for Hard difficulty";
                 // Set game parameters
                 break;
             default:
-                qDebug() << "Unknown difficulty";
+                qDebug() << "MainWindow: Unknown difficulty";
             }
 
             // Example switch case for map
-            QString map = gameMap.toLower();
-            switch (map.at(0).toLatin1()) {
-            case 'm': // Map1, Map2, Map3
-                if (map == "map1") {
-                    qDebug() << "Loading Map1";
-                    // Load Map1 assets
-                } else if (map == "map2") {
-                    qDebug() << "Loading Map2";
-                    // Load Map2 assets
-                } else if (map == "map3") {
-                    qDebug() << "Loading Map3";
-                    // Load Map3 assets
-                }
+            switch (gameMap) {
+            case 0: // Map1
+                qDebug() << "MainWindow: Loading Map1";
+                // Load Map1 assets
                 break;
-            case 'r': // Random
-                qDebug() << "Generating random map";
+            case 1: // Map2
+                qDebug() << "MainWindow: Loading Map2";
+                // Load Map2 assets
+                break;
+            case 2: // Map3
+                qDebug() << "MainWindow: Loading Map3";
+                // Load Map3 assets
+                break;
+            case 3: // Random
+                qDebug() << "MainWindow: Generating random map";
                 // Generate random map
                 break;
             default:
-                qDebug() << "Unknown map";
+                qDebug() << "MainWindow: Unknown map";
             }
         }
     }

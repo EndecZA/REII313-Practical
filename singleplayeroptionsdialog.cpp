@@ -1,5 +1,6 @@
 #include "singleplayeroptionsdialog.h"
 #include "newgamesettingsdialog.h"
+
 #include <QVBoxLayout>
 #include <QDebug>
 
@@ -50,6 +51,7 @@ SinglePlayerOptionsDialog::SinglePlayerOptionsDialog(QWidget *parent)
     layout->setAlignment(Qt::AlignCenter);
     layout->setSpacing(20);
     setLayout(layout);
+
 }
 
 void SinglePlayerOptionsDialog::onNewGameClicked()
@@ -58,13 +60,15 @@ void SinglePlayerOptionsDialog::onNewGameClicked()
     if (settingsDialog.exec() == QDialog::Accepted) {
         selectedDifficulty = settingsDialog.getSelectedDifficulty();
         selectedMap = settingsDialog.getSelectedMap();
-        qDebug() << "New Game - Difficulty:" << selectedDifficulty << ", Map:" << selectedMap;
+        qDebug() << "SinglePlayerOptionsDialog: New Game - Difficulty:" << selectedDifficulty << ", Map:" << selectedMap;
         accept(); // Close SinglePlayerOptionsDialog
     }
+
 }
 
 void SinglePlayerOptionsDialog::onLoadGameClicked()
 {
-    qDebug() << "Load Game selected";
+    qDebug() << "SinglePlayerOptionsDialog: Load Game selected";
     accept();
+
 }

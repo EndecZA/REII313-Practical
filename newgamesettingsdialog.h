@@ -11,8 +11,8 @@ class NewGameSettingsDialog : public QDialog
 
 public:
     explicit NewGameSettingsDialog(QWidget *parent = nullptr);
-    QString getSelectedDifficulty() const { return selectedDifficulty; }
-    QString getSelectedMap() const { return selectedMap; }
+    int getSelectedDifficulty() const { return selectedDifficulty; }
+    int getSelectedMap() const { return selectedMap; }
 
 private slots:
     void onConfirmClicked();
@@ -23,8 +23,8 @@ private:
     QComboBox *mapCombo;
     QPushButton *confirmBtn;
     QPushButton *backBtn;
-    QString selectedDifficulty;
-    QString selectedMap;
+    int selectedDifficulty;
+    int selectedMap;
 };
 
 #endif // NEWGAMESETTINGSDIALOG_H

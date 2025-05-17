@@ -1,4 +1,5 @@
 #include "multiplayeroptionsdialog.h"
+
 #include <QVBoxLayout>
 #include <QDebug>
 
@@ -59,14 +60,14 @@ MultiPlayerOptionsDialog::MultiPlayerOptionsDialog(QWidget *parent)
 
 void MultiPlayerOptionsDialog::onHostGameClicked()
 {
-    qDebug() << "Host Game selected";
+    qDebug() << "MultiPlayerOptionsDialog: Game selected";
     accept(); // Close dialog with "accepted" status
     // Add logic for hosting a game here
 }
 
 void MultiPlayerOptionsDialog::onJoinGameClicked()
 {
-    qDebug() << "Join Game selected";
+    qDebug() << "MultiPlayerOptionsDialog: Join Game selected";
     accept(); // Close dialog with "accepted" status
     // Add logic for joining a game here
 }

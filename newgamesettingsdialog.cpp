@@ -1,4 +1,5 @@
 #include "newgamesettingsdialog.h"
+
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QDebug>
@@ -56,7 +57,7 @@ NewGameSettingsDialog::NewGameSettingsDialog(QWidget *parent)
 
     // Map combo box
     mapCombo = new QComboBox(this);
-    mapCombo->addItems({"Map1", "Map2", "Map3", "Random"});
+    mapCombo->addItems({"Map 1", "Map 2", "Map 3", "Random"});
     mapCombo->setStyleSheet(
         "QComboBox {"
         "   background-color: #FFB347;"
@@ -113,13 +114,14 @@ NewGameSettingsDialog::NewGameSettingsDialog(QWidget *parent)
     layout->setAlignment(Qt::AlignCenter);
     layout->setSpacing(15);
     setLayout(layout);
+
 }
 
 void NewGameSettingsDialog::onConfirmClicked()
 {
-    selectedDifficulty = difficultyCombo->currentText();
-    selectedMap = mapCombo->currentText();
-    qDebug() << "Selected Difficulty:" << selectedDifficulty << ", Map:" << selectedMap;
+    selectedDifficulty = difficultyCombo->currentIndex();
+    selectedMap = mapCombo->currentIndex();
+    qDebug() << "NewGameSettingsDialog: Selected Difficulty:" << selectedDifficulty << ", Map:" << selectedMap;
     accept(); // Close dialog with "accepted" status
 }
 

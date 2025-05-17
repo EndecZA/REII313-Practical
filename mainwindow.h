@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <QPushButton>
+#include <QWindow>
 
 class MainWindow : public QMainWindow
 {
@@ -21,8 +22,10 @@ private:
     QLabel *Background;
     QPushButton *SinglePlayerBtn;
     QPushButton *MultiPlayerBtn;
-    QString gameDifficulty; // Store difficulty
-    QString gameMap;       // Store map
+    QWindow gameWindow;
+    int gameDifficulty; // Store difficulty
+    int gameMap; // Store map
+
 };
 
 #endif // MAINWINDOW_H
