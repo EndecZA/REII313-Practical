@@ -52,6 +52,11 @@ SinglePlayerOptionsDialog::SinglePlayerOptionsDialog(QWidget *parent)
     layout->setSpacing(20);
     setLayout(layout);
 
+    // Initialaze Parameters:
+    selectedDifficulty = 0;
+    selectedMap = 0;
+    selectedSave = 0; // Zero means new game. 1 => save slot 1 etc.
+
 }
 
 void SinglePlayerOptionsDialog::onNewGameClicked()
@@ -60,6 +65,7 @@ void SinglePlayerOptionsDialog::onNewGameClicked()
     if (settingsDialog.exec() == QDialog::Accepted) {
         selectedDifficulty = settingsDialog.getSelectedDifficulty();
         selectedMap = settingsDialog.getSelectedMap();
+        selectedSave = 0;
         qDebug() << "SinglePlayerOptionsDialog: New Game - Difficulty:" << selectedDifficulty << ", Map:" << selectedMap;
         accept(); // Close SinglePlayerOptionsDialog
     }

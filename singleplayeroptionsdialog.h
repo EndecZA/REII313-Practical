@@ -12,6 +12,7 @@ public:
     explicit SinglePlayerOptionsDialog(QWidget *parent = nullptr);
     int getSelectedDifficulty() const { return selectedDifficulty; }
     int getSelectedMap() const { return selectedMap; }
+    int getSelectedSave() const { return selectedSave; }
 
 private slots:
     void onNewGameClicked();
@@ -22,6 +23,7 @@ private:
     QPushButton *loadGameBtn;
     int selectedDifficulty;
     int selectedMap;
+    int selectedSave;
 
 };
 

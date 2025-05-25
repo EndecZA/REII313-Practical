@@ -60,7 +60,7 @@ MultiPlayerOptionsDialog::MultiPlayerOptionsDialog(QWidget *parent)
 
 void MultiPlayerOptionsDialog::onHostGameClicked()
 {
-    qDebug() << "MultiPlayerOptionsDialog: Game selected";
+    qDebug() << "MultiPlayerOptionsDialog: Host Game selected";
     accept(); // Close dialog with "accepted" status
     // Add logic for hosting a game here
 }

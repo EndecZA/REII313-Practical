@@ -4,7 +4,8 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <QPushButton>
-#include <QWindow>
+
+class GameMapDialog;
 
 class MainWindow : public QMainWindow
 {
@@ -22,9 +23,12 @@ private:
     QLabel *Background;
     QPushButton *SinglePlayerBtn;
     QPushButton *MultiPlayerBtn;
-    QWindow gameWindow;
-    int gameDifficulty; // Store difficulty
-    int gameMap; // Store map
+    GameMapDialog *gameMap;
+
+    int gameDifficulty; // Current difficulty index.
+    int mapType; // Current map index.
+    int gameSave; // Save slot (0 => new game).
+    bool isMultiplayer; // Is game online.
 
 };
 

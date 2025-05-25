@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "singleplayeroptionsdialog.h"
 #include "multiplayeroptionsdialog.h"
+#include "gamemapdialog.h"
 
 #include <QPixmap>
 #include <QFontDatabase>
@@ -61,61 +62,73 @@ MainWindow::MainWindow(QWidget *parent)
         "}");
     connect(MultiPlayerBtn, &QPushButton::clicked, this, &MainWindow::onMultiPlayerClicked);
 
+    // Initialize Public Variables used during game creation and runtime:
+    gameDifficulty = 0;
+    mapType = 0;
+    gameSave = false;
+    isMultiplayer = false;
 }
 
 void MainWindow::onSinglePlayerClicked()
 {
+    isMultiplayer = false;
     SinglePlayerOptionsDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
         gameDifficulty = dialog.getSelectedDifficulty();
-        gameMap = dialog.getSelectedMap();
-        if (gameDifficulty != -1 && gameMap != -1) {
-            // Example switch case for difficulty
-            qDebug() << "MainWindow: Starting new game with Difficulty:" << gameDifficulty << ", Map:" << gameMap;
-            switch (gameDifficulty) {
-            case 0: // Easy
-                qDebug() << "MainWindow: Configuring game for Easy difficulty";
-                // Set game parameters (e.g., enemy strength, lives)
-                break;
-            case 1: // Medium
-                qDebug() << "MainWindow: Configuring game for Medium difficulty";
-                // Set game parameters
-                break;
-            case 2: // Hard
-                qDebug() << "MainWindow: Configuring game for Hard difficulty";
-                // Set game parameters
-                break;
-            default:
-                qDebug() << "MainWindow: Unknown difficulty";
-            }
+        mapType = dialog.getSelectedMap();
+        gameSave = dialog.getSelectedSave();
+//        if (gameDifficulty != -1 && gameMap != -1) {
+//            // Example switch case for difficulty
+//            qDebug() << "MainWindow: Starting new game with Difficulty:" << gameDifficulty << ", Map:" << gameMap;
+//            switch (gameDifficulty) {
+//            case 0: // Easy
+//                qDebug() << "MainWindow: Configuring game for Easy difficulty";
+//                // Set game parameters (e.g., enemy strength, lives)
+//                break;
+//            case 1: // Medium
+//                qDebug() << "MainWindow: Configuring game for Medium difficulty";
+//                // Set game parameters
+//                break;
+//            case 2: // Hard
+//                qDebug() << "MainWindow: Configuring game for Hard difficulty";
+//                // Set game parameters
+//                break;
+//            default:
+//                qDebug() << "MainWindow: Unknown difficulty";
+//            }
 
-            // Example switch case for map
-            switch (gameMap) {
-            case 0: // Map1
-                qDebug() << "MainWindow: Loading Map1";
-                // Load Map1 assets
-                break;
-            case 1: // Map2
-                qDebug() << "MainWindow: Loading Map2";
-                // Load Map2 assets
-                break;
-            case 2: // Map3
-                qDebug() << "MainWindow: Loading Map3";
-                // Load Map3 assets
-                break;
-            case 3: // Random
-                qDebug() << "MainWindow: Generating random map";
-                // Generate random map
-                break;
-            default:
-                qDebug() << "MainWindow: Unknown map";
-            }
-        }
+//            // Example switch case for map
+//            switch (gameMap) {
+//            case 0: // Map1
+//                qDebug() << "MainWindow: Loading Map1";
+//                // Load Map1 assets
+//                break;
+//            case 1: // Map2
+//                qDebug() << "MainWindow: Loading Map2";
+//                // Load Map2 assets
+//                break;
+//            case 2: // Map3
+//                qDebug() << "MainWindow: Loading Map3";
+//                // Load Map3 assets
+//                break;
+//            case 3: // Random
+//                qDebug() << "MainWindow: Generating random map";
+//                // Generate random map
+//                break;
+//            default:
+//                qDebug() << "MainWindow: Unknown map";
+//            }
+//        }
     }
+
+    // Launch the game by opening the the game window:
+    gameMap = new GameMapDialog(this);
+    gameMap->exec();
 }
 
 void MainWindow::onMultiPlayerClicked()
 {
+    isMultiplayer = true;
     MultiPlayerOptionsDialog dialog(this);
     dialog.exec();
 }

@@ -2,6 +2,5 @@
     <qresource prefix="/resources">
         <file>fonts/PressStart2P-Regular.ttf</file>
         <file>images/Logo.png</file>
-        <file>maps/test.png</file>
     </qresource>
 </RCC>
