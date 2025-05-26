@@ -63,8 +63,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(MultiPlayerBtn, &QPushButton::clicked, this, &MainWindow::onMultiPlayerClicked);
 
     // Initialize Public Variables used during game creation and runtime:
-    gameDifficulty = 0;
-    mapType = 0;
     gameSave = false;
     isMultiplayer = false;
 }
@@ -74,9 +72,16 @@ void MainWindow::onSinglePlayerClicked()
     isMultiplayer = false;
     SinglePlayerOptionsDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
-        gameDifficulty = dialog.getSelectedDifficulty();
-        mapType = dialog.getSelectedMap();
-        gameSave = dialog.getSelectedSave();
+        gameSave = dialog.getSelectedSave(); // Is the game being saved.
+
+        // Launch the game by opening the the game window:
+        gameMap = new GameMapDialog(this);
+        gameMap->setDifficulty(dialog.getSelectedDifficulty());
+        gameMap->setMap(dialog.getSelectedMap());
+        gameMap->setMultiplayer(isMultiplayer);
+        gameMap->exec();
+
+
 //        if (gameDifficulty != -1 && gameMap != -1) {
 //            // Example switch case for difficulty
 //            qDebug() << "MainWindow: Starting new game with Difficulty:" << gameDifficulty << ", Map:" << gameMap;
@@ -120,10 +125,6 @@ void MainWindow::onSinglePlayerClicked()
 //            }
 //        }
     }
-
-    // Launch the game by opening the the game window:
-    gameMap = new GameMapDialog(this);
-    gameMap->exec();
 }
 
 void MainWindow::onMultiPlayerClicked()
@@ -131,6 +132,8 @@ void MainWindow::onMultiPlayerClicked()
     isMultiplayer = true;
     MultiPlayerOptionsDialog dialog(this);
     dialog.exec();
+
+    // CODE HERE
 }
 
 MainWindow::~MainWindow()

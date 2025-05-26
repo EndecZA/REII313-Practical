@@ -25,8 +25,6 @@ private:
     QPushButton *MultiPlayerBtn;
     GameMapDialog *gameMap;
 
-    int gameDifficulty; // Current difficulty index.
-    int mapType; // Current map index.
     int gameSave; // Save slot (0 => new game).
     bool isMultiplayer; // Is game online.
 
