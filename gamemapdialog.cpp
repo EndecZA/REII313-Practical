@@ -34,6 +34,25 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 //    drawMap(); // Add tiles to the background of the scene and barriers to the foreground.
 
 }
+//WORK IN PROGRESS
+//void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
+//{
+//    Enemy* enemy = new Enemy(type, pos, this);
+//    switch (gameDifficulty) {
+//        case easy:
+//            enemy->setHealth(enemy->getHealth() * 0.8);
+//            break;
+//        case medium:
+//            // Default stats
+//            break;
+//        case hard:
+//            enemy->setHealth(enemy->getHealth() * 1.5);
+//            enemy->setDamage(enemy->getDamage() * 1.2);
+//            break;
+//    }
+//    enemies.append(enemy);
+//    gameScene->addItem(enemy);
+//}
 
 void GameMapDialog::setDifficulty(int dif)
 {
