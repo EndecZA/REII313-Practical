@@ -6,6 +6,7 @@
 #include <QTime>
 
 enum EnemyType {Skeleton, Skeleton_Archer, Armoured_Skeleton, Wizard, Orc, Armoured_Orc, Elite_Orc, Orc_rider, Knight, Knight_Templar, Werebear, Cleric };
+enum EnemyState {Moving, Attacking, Dying, Idle}; //The idling is used between the attacks of the enemy
 
 class Enemy : public QGraphicsPixmapItem
 {
@@ -31,7 +32,7 @@ public:
     float getAttackRange();
 
     //Animation
-    void setState();
+    void setState(EnemyState state);
     void UpdateAnimation();
 
     void update();
@@ -40,11 +41,21 @@ private:
     EnemyType type;
     int health;
     int damage;
-    float speed;
+    float walkSpeed;
+    float attackSpeed;
     float attackRange;
    QPointF target;
    QTime lastAttackTime;
    float attackCooldown;
+
+   EnemyState state;
+   QPixmap spriteSheet;
+    int frameWidth;
+    int frameHeight;
+    int currentFrame;
+    float animationTimer; // Tracks time since last frame
+    float frameDuration; // Seconds per frame
+    QMap<EnemyState, int> stateFrameCounts; // Frames per state
 
 };
 

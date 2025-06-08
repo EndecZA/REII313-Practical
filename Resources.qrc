@@ -2,5 +2,17 @@
     <qresource prefix="/resources">
         <file>fonts/PressStart2P-Regular.ttf</file>
         <file>images/Logo.png</file>
+        <file>images/Skeleton.png</file>
+        <file>images/Skeleton_Archer.png</file>
+        <file>images/Armored_Skeleton.png</file>
+        <file>images/Armored_Orc.png</file>
+        <file>images/Cleric.png</file>
+        <file>images/Elite_Orc.png</file>
+        <file>images/Knight.png</file>
+        <file>images/Knight_Templar.png</file>
+        <file>images/Orc.png</file>
+        <file>images/Orc_Rider.png</file>
+        <file>images/Werebear.png</file>
+        <file>images/Wizard.png</file>
     </qresource>
 </RCC>

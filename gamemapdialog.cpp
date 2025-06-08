@@ -21,6 +21,25 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameView->setScene(gameScene);
 
 }
+//WORK IN PROGRESS
+//void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
+//{
+//    Enemy* enemy = new Enemy(type, pos, this);
+//    switch (gameDifficulty) {
+//        case easy:
+//            enemy->setHealth(enemy->getHealth() * 0.8);
+//            break;
+//        case medium:
+//            // Default stats
+//            break;
+//        case hard:
+//            enemy->setHealth(enemy->getHealth() * 1.5);
+//            enemy->setDamage(enemy->getDamage() * 1.2);
+//            break;
+//    }
+//    enemies.append(enemy);
+//    gameScene->addItem(enemy);
+//}
 
 void GameMapDialog::setDifficulty(int dif)
 {
