@@ -2,5 +2,9 @@
     <qresource prefix="/resources">
         <file>fonts/PressStart2P-Regular.ttf</file>
         <file>images/Logo.png</file>
+        <file>maps/map2.txt</file>
+        <file>maps/map3.txt</file>
+        <file>maps/map1.txt</file>
+        <file>images/tileset.png</file>
     </qresource>
 </RCC>

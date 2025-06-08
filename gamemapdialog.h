@@ -5,7 +5,10 @@
 #include <QWidget>
 #include <QGraphicsView>
 #include <QGraphicsScene>
+#include <QGraphicsPixmapItem>
 #include <QPixmap>
+#include <QVector>
+#include <QFile>
 
 enum difficulty
 {
@@ -28,18 +31,26 @@ public:
     int getDifficulty();
     int getMap();
     bool getMultiplayer();
+    void drawMap(); // Function to create the game map from prebuilt maps.
 
 private:
     // Private game setting variables:
     enum difficulty gameDifficulty; // Current selected difficulty.
     enum map mapType; // Current selected map.
     bool isMultiplayer; // Is game online.
+    static const int tileSize = 32; // Tile height and width in pixels.
+    static const int mapWidth = 15; // Amount of tiles horizontally.
+    static const int mapHeight = 30; // Amount of tiles vertically.
+    int mapGrid[2*mapHeight][2*mapWidth]; // Grid to store map and barriers.
 
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
     QPixmap *tileset;
+    QFile *mapFile;
+    QVector<QGraphicsPixmapItem*> groundGrid; // Vector to store tiles for the ground.
+    QVector<QGraphicsPixmapItem*> barrierGrid; // Vecrot to store tiles for the barriers.
 
-    void drawMap(); // Function to create the game map from prebuilt maps.
+    void genMap(); // Function to generate a random map.
 
 };
 

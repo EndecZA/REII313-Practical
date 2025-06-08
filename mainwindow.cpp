@@ -79,8 +79,8 @@ void MainWindow::onSinglePlayerClicked()
         gameMap->setDifficulty(dialog.getSelectedDifficulty());
         gameMap->setMap(dialog.getSelectedMap());
         gameMap->setMultiplayer(isMultiplayer);
+        gameMap->drawMap();
         gameMap->exec();
-
 
 //        if (gameDifficulty != -1 && gameMap != -1) {
 //            // Example switch case for difficulty
