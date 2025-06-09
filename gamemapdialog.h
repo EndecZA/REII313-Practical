@@ -17,7 +17,7 @@ enum difficulty
 
 enum map
 {
-    map1,map2,map3,random
+    map1,map2,map3
 };
 
 class GameMapDialog : public QDialog
@@ -42,13 +42,12 @@ private:
     static const int mapWidth = 15; // Amount of tiles horizontally.
     static const int mapHeight = 30; // Amount of tiles vertically.
     int mapGrid[2*mapHeight][2*mapWidth]; // Grid to store map and barriers.
+    int barrierGrid[2*mapHeight][2*mapWidth]; // Grid to store barrier locations for pathfinding.
 
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
     QPixmap *tileset;
     QFile *mapFile;
-    QVector<QGraphicsPixmapItem*> groundGrid; // Vector to store tiles for the ground.
-    QVector<QGraphicsPixmapItem*> barrierGrid; // Vecrot to store tiles for the barriers.
 
     void genMap(); // Function to generate a random map.
 

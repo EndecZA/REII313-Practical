@@ -31,9 +31,9 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 
     // Load the pixmap for the tileset and draw the map grid:
     tileset = new QPixmap(":/resources/images/tileset.png");
-//    drawMap(); // Add tiles to the background of the scene and barriers to the foreground.
 
 }
+
 //WORK IN PROGRESS
 //void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
 //{
@@ -86,9 +86,6 @@ void GameMapDialog::setMap(int map)
         case 2:
             mapType = map3;
         break;
-        case 3:
-            mapType = random;
-        break;
         default:
             mapType = map1;
         break;
@@ -133,9 +130,9 @@ void GameMapDialog::drawMap()
             qDebug() << "Loaded Map 3.";
             mapFile->setFileName(":/resources/maps/map3.txt");
         break;
-        case random:
-            qDebug() << "Generating random Map.";
-            genMap();
+        default:
+            qDebug() << "Loaded Map 1.";
+            mapFile->setFileName(":/resources/maps/map1.txt");
         break;
     }
     if (!mapFile->open(QIODevice::ReadOnly))
@@ -154,7 +151,18 @@ void GameMapDialog::drawMap()
             p = line.indexOf("\t");
             int tile = line.mid(0, p).toInt(); // Extract tile value from grid.
             line = line.mid(p+1); // Remove tile that was added.
-            mapGrid[rows][columns] = tile; // Add tile to grid.
+
+            // Add the ground tiles to array:
+            if ((rows%2 == 0 && columns%2 == 0) || (rows%2 != 0 && columns%2 != 0))
+                mapGrid[rows][columns] = tile; // Add tile to grid.
+            else
+                mapGrid[rows][columns] = 0; // Add 0 to corner indices.
+
+            // Add the barrier tiles to array:
+            if ((rows%2 == 0 && columns%2 != 0) || (rows%2 != 0 && columns%2 == 0))
+                barrierGrid[2*mapHeight - rows - 1][columns] = tile; // Add barrier to grid.
+            else
+                barrierGrid[2*mapHeight - rows - 1][columns] = 0; // Add 0 to corner indices.
 
             ++columns;
         }
@@ -163,15 +171,20 @@ void GameMapDialog::drawMap()
     }
     mapFile->close();
     qDebug() << "Extracted map from text file.";
+    qDebug() << "Rows: " << rows << " Columns: " << columns;
 
-    // Create QGraphicsPixmaps for each tile of the floor:
+    // Create QGraphicsPixmaps for each tile and barricade of the map:
     srand(time(0));
     for (int i = 0; i<rows; ++i)
     {
         for (int j = 0; j<columns; ++j)
         {
+            // Find current index position in scene:
+            int x = j*tileSize/2 - tileSize/4;
+            int y = i*tileSize/4  - tileSize/4 + rand()%5 - 2;
+
             // Only work with checkerboard indices:
-            if ((i%2 == 0 && j%2 == 0) || (i%2 != 0 && j%2 != 0))
+            if (mapGrid[i][j] != 0)
             {
                 int row = 0; // Row position in pixmap to copy from.
                 int col = 0; // Column position in pixmap to copy from.
@@ -206,28 +219,16 @@ void GameMapDialog::drawMap()
                 col *= tileSize;
                 // Create GraphicsPixmapItem from specific tile in tileset and add to the scene.
                 QGraphicsPixmapItem *tile = new QGraphicsPixmapItem(tileset->copy(col, row, tileSize, tileSize));
-                int x = j*tileSize/2 - tileSize/2;
-                int y = i*tileSize/4 - tileSize/4; // + rand()%5 - 2
                 tile->setPos(x, y);
                 tile->setZValue(-1); // Ensure that tiles are behind everything else.
                 gameScene->addItem(tile);
             }
-        }
-    }
-    qDebug() << "Added tiles to GraphicsView.";
 
-    // Create QGraphicsPixmaps for each barrier:
-    for (int i = rows-1; i>=0; --i) // Work from the bottom up.
-    {
-        for (int j = 0; j<columns; ++j)
-        {
-            // Only work with checkerboard indices:
-            if (((i%2 == 0 && j%2 != 0) || (i%2 == 0 && j%2 != 0)) && (mapGrid[i][j] != 0))
+            if (barrierGrid[i][j] != 0)
             {
-                qDebug() << mapGrid[i][j];
                 int row = 0; // Row position in pixmap to copy from.
                 int col = 0; // Column position in pixmap to copy from.
-                switch (mapGrid[i][j])
+                switch (barrierGrid[i][j])
                 {
                 case 1: // Grass Variant:
                     row = rand()%2 + 6; // Random variant row index.
@@ -249,23 +250,21 @@ void GameMapDialog::drawMap()
                     row = rand()%3 + 8; // Random variant row index.
                     col = 0; // Brick column index.
                 break;
-                default: // Default: Grass Variant:
-                    row = rand()%2 + 6; // Random variant row.
-                    col = rand()%3 + 3; // Random variant column.
+                default: // Brick Variant:
+                    row = rand()%3 + 8; // Random variant row index.
+                    col = 0; // Brick column index.
                 break;
                 }
                 row *= tileSize;
                 col *= tileSize;
                 // Create GraphicsPixmapItem from specific tile in tileset and add to the scene.
                 QGraphicsPixmapItem *barrier = new QGraphicsPixmapItem(tileset->copy(col, row, tileSize, tileSize));
-                int x = (j+1)*tileSize/2 - tileSize;
-                int y = tileSize*mapHeight/2 - (i+1)*tileSize/4 + tileSize/4 - 32; // + rand()%5 - 2
-                barrier->setPos(x, y);
+                barrier->setPos(x, y - tileSize/2);
                 gameScene->addItem(barrier);
             }
         }
     }
-    qDebug() << "Added barriers to GraphicsView.";
+    qDebug() << "Added tiles and barriers to GraphicsView.";
 
 }
 
