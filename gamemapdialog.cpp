@@ -2,10 +2,11 @@
 #include <QDebug>
 #include <ctime>
 #include <QByteArray>
+#include <QTimer>
 
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
-{   
+{
     setModal(true);
     showMaximized();
     setFixedSize(1920,1080);
@@ -22,37 +23,141 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     int scale = 1920/(tileSize*mapWidth);
-    gameView->scale(scale,scale); // Zoom into the scene (all graphics are 4 times larger)
+    gameView->scale(scale, scale);
     gameView->show();
 
     gameDifficulty = medium;
     mapType = map1;
     isMultiplayer = false;
 
-    // Load the pixmap for the tileset and draw the map grid:
+    srand(time(0));
     tileset = new QPixmap(":/resources/images/tileset.png");
+    drawMap();
 
+    // Add debug rectangle for scene boundaries
+    QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
+    debugRect->setZValue(10);
+
+    // Highlight spawn points
+    QVector<QPointF> spawnPoints = getSpawnPoints();
+    for (const QPointF& point : spawnPoints) {
+        QGraphicsRectItem* spawnMarker = gameScene->addRect(point.x() - 16, point.y() - 16, 32, 32, QPen(Qt::yellow), QBrush(Qt::yellow));
+        spawnMarker->setZValue(9);
+    }
+
+    currentWave = 0;
+    enemiesPerWave = 5;
+    enemiesToSpawn = 0;
+    waveTimer = new QTimer(this);
+    connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
+    waveTimer->start(10000);
+
+    updateTimer = new QTimer(this);
+    connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
+    updateTimer->start(16);
 }
 
-//WORK IN PROGRESS
-//void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
-//{
-//    Enemy* enemy = new Enemy(type, pos, this);
-//    switch (gameDifficulty) {
-//        case easy:
-//            enemy->setHealth(enemy->getHealth() * 0.8);
-//            break;
-//        case medium:
-//            // Default stats
-//            break;
-//        case hard:
-//            enemy->setHealth(enemy->getHealth() * 1.5);
-//            enemy->setDamage(enemy->getDamage() * 1.2);
-//            break;
-//    }
-//    enemies.append(enemy);
-//    gameScene->addItem(enemy);
-//}
+void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
+{
+    Enemy* enemy = new Enemy(type, pos);
+    if (enemy->pixmap().isNull()) {
+        qDebug() << "Skipping spawn of type" << type << "due to null pixmap at" << pos;
+        delete enemy;
+        return;
+    }
+    switch (gameDifficulty) {
+        case easy:
+            enemy->setHealth(enemy->getHealth() * 0.8);
+            break;
+        case medium:
+            break;
+        case hard:
+            enemy->setHealth(enemy->getHealth() * 1.5);
+            enemy->setDamage(enemy->getDamage() * 1.2);
+            break;
+    }
+    enemy->setZValue(1);
+    enemies.append(enemy);
+    gameScene->addItem(enemy);
+    qDebug() << "Spawned enemy type" << type << "at" << pos << "with zValue" << enemy->zValue();
+
+    // Temporary debug marker
+    QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
+    marker->setZValue(2);
+    marker->setOpacity(0.5);
+}
+
+QVector<QPointF> GameMapDialog::getSpawnPoints()
+{
+    QVector<QPointF> spawnPoints;
+    switch (mapType) {
+        case map1:
+            spawnPoints << QPointF(tileSize * 2, tileSize * 2)
+                        << QPointF(tileSize * 10, tileSize * 2);
+            break;
+        case map2:
+            spawnPoints << QPointF(tileSize * 5, tileSize * 3)
+                        << QPointF(tileSize * 12, tileSize * 3);
+            break;
+        case map3:
+            spawnPoints << QPointF(tileSize * 3, tileSize * 4)
+                        << QPointF(tileSize * 8, tileSize * 4);
+            break;
+    }
+    for (const QPointF& point : spawnPoints) {
+        int gridX = static_cast<int>(point.x() / tileSize);
+        int gridY = static_cast<int>(point.y() / (tileSize / 2));
+        if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
+            if (mapGrid[gridY][gridX] != 1 && mapGrid[gridY][gridX] != 2) {
+                qDebug() << "Warning: Spawn point" << point << "is on non-walkable tile" << mapGrid[gridY][gridX];
+            }
+            if (barrierGrid[2 * mapHeight - gridY - 1][gridX] != 0) {
+                qDebug() << "Warning: Spawn point" << point << "overlaps with barrier";
+            }
+        } else {
+            qDebug() << "Error: Spawn point" << point << "is outside map bounds";
+        }
+    }
+    qDebug() << "Spawn points:" << spawnPoints;
+    return spawnPoints;
+}
+
+void GameMapDialog::startNextWave()
+{
+    currentWave++;
+    enemiesToSpawn = enemiesPerWave + currentWave * 2;
+    qDebug() << "Starting wave" << currentWave << "with" << enemiesToSpawn << "enemies";
+
+    QTimer* spawnTimer = new QTimer(this);
+    int spawnInterval = 1000;
+    int enemiesSpawned = 0;
+
+    connect(spawnTimer, &QTimer::timeout, this, [=]() mutable {
+        if (enemiesSpawned < enemiesToSpawn) {
+            QVector<QPointF> spawnPoints = getSpawnPoints();
+            if (!spawnPoints.isEmpty()) {
+                QPointF spawnPos = spawnPoints[rand() % spawnPoints.size()];
+                EnemyType type = (currentWave < 3) ? Skeleton :
+                                 (currentWave < 6) ? Orc : Knight;
+                spawnEnemy(type, spawnPos);
+                enemiesSpawned++;
+            }
+        } else {
+            spawnTimer->stop();
+            spawnTimer->deleteLater();
+            qDebug() << "Wave" << currentWave << "completed";
+        }
+    });
+    spawnTimer->start(spawnInterval);
+}
+
+void GameMapDialog::updateGame()
+{
+    for (Enemy* enemy : enemies) {
+        enemy->update();
+    }
+    gameScene->update();
+}
 
 void GameMapDialog::setDifficulty(int dif)
 {
@@ -60,16 +165,20 @@ void GameMapDialog::setDifficulty(int dif)
     {
         case 0:
             gameDifficulty = easy;
-        break;
+            enemiesPerWave = 3;
+            break;
         case 1:
             gameDifficulty = medium;
-        break;
+            enemiesPerWave = 5;
+            break;
         case 2:
             gameDifficulty = hard;
-        break;
+            enemiesPerWave = 7;
+            break;
         default:
             gameDifficulty = medium;
-        break;
+            enemiesPerWave = 5;
+            break;
     }
 }
 
@@ -79,16 +188,16 @@ void GameMapDialog::setMap(int map)
     {
         case 0:
             mapType = map1;
-        break;
+            break;
         case 1:
             mapType = map2;
-        break;
+            break;
         case 2:
             mapType = map3;
-        break;
+            break;
         default:
             mapType = map1;
-        break;
+            break;
     }
 }
 
@@ -109,60 +218,52 @@ int GameMapDialog::getMap()
 
 bool GameMapDialog::getMultiplayer()
 {
-    return gameDifficulty;
+    return isMultiplayer;
 }
 
 void GameMapDialog::drawMap()
 {
-    // Load appropriate text file for each map.
     mapFile = new QFile(this);
     switch (mapType)
     {
         case map1:
             qDebug() << "Loaded Map 1.";
             mapFile->setFileName(":/resources/maps/map1.txt");
-        break;
+            break;
         case map2:
             qDebug() << "Loaded Map 2.";
             mapFile->setFileName(":/resources/maps/map2.txt");
-        break;
+            break;
         case map3:
             qDebug() << "Loaded Map 3.";
             mapFile->setFileName(":/resources/maps/map3.txt");
-        break;
-        default:
-            qDebug() << "Loaded Map 1.";
-            mapFile->setFileName(":/resources/maps/map1.txt");
-        break;
+            break;
     }
     if (!mapFile->open(QIODevice::ReadOnly))
         qDebug() << "Cannot load map file.";
 
-    // Load the values from the text file into integer array:
-    int rows= 0;
+    int rows = 0;
     int columns = 0;
     while (!mapFile->atEnd())
     {
         columns = 0;
-        QByteArray line = mapFile->readLine(); // Read line from file.
+        QByteArray line = mapFile->readLine();
         int p = -1;
         do
         {
             p = line.indexOf("\t");
-            int tile = line.mid(0, p).toInt(); // Extract tile value from grid.
-            line = line.mid(p+1); // Remove tile that was added.
+            int tile = line.mid(0, p).toInt();
+            line = line.mid(p+1);
 
-            // Add the ground tiles to array:
             if ((rows%2 == 0 && columns%2 == 0) || (rows%2 != 0 && columns%2 != 0))
-                mapGrid[rows][columns] = tile; // Add tile to grid.
+                mapGrid[rows][columns] = tile;
             else
-                mapGrid[rows][columns] = 0; // Add 0 to corner indices.
+                mapGrid[rows][columns] = 0;
 
-            // Add the barrier tiles to array:
             if ((rows%2 == 0 && columns%2 != 0) || (rows%2 != 0 && columns%2 == 0))
-                barrierGrid[2*mapHeight - rows - 1][columns] = tile; // Add barrier to grid.
+                barrierGrid[2*mapHeight - rows - 1][columns] = tile;
             else
-                barrierGrid[2*mapHeight - rows - 1][columns] = 0; // Add 0 to corner indices.
+                barrierGrid[2*mapHeight - rows - 1][columns] = 0;
 
             ++columns;
         }
@@ -173,103 +274,98 @@ void GameMapDialog::drawMap()
     qDebug() << "Extracted map from text file.";
     qDebug() << "Rows: " << rows << " Columns: " << columns;
 
-    // Create QGraphicsPixmaps for each tile and barricade of the map:
     srand(time(0));
     for (int i = 0; i<rows; ++i)
     {
         for (int j = 0; j<columns; ++j)
         {
-            // Find current index position in scene:
             int x = j*tileSize/2 - tileSize/4;
-            int y = i*tileSize/4  - tileSize/4 + rand()%5 - 2;
+            int y = i*tileSize/4 - tileSize/4 + rand()%5 - 2;
 
-            // Only work with checkerboard indices:
             if (mapGrid[i][j] != 0)
             {
-                int row = 0; // Row position in pixmap to copy from.
-                int col = 0; // Column position in pixmap to copy from.
+                int row = 0;
+                int col = 0;
                 switch (mapGrid[i][j])
                 {
-                case 1: // Grass Variant:
-                    row = rand()%2 + 6; // Random variant row index.
-                    col = rand()%3 + 3; // Random variant column index.
-                break;
-                case 2: // Sand:
-                    row = 2; // Sand pixmap row index.
-                    col = 0; // Sand pixmap column index.
-                break;
-                case 3: // Water:
-                    row = 0; // Water pixmap row index.
-                    col = 1; // Water pixmap column index.
-                break;
-                case 4: // Lava:
-                    row = 0; // Lava pixmap row index.
-                    col = 3; // Lava pixmap column index.
-                break;
-                case 5: // Brick Variant:
-                    row = rand()%3 + 8; // Random variant row index.
-                    col = 0; // Brick column index.
-                break;
-                default: // Default: Grass Variant:
-                    row = rand()%2 + 6; // Random variant row.
-                    col = rand()%3 + 3; // Random variant column.
-                break;
+                case 1:
+                    row = rand()%2 + 6;
+                    col = rand()%3 + 3;
+                    break;
+                case 2:
+                    row = 2;
+                    col = 0;
+                    break;
+                case 3:
+                    row = 0;
+                    col = 1;
+                    break;
+                case 4:
+                    row = 0;
+                    col = 3;
+                    break;
+                case 5:
+                    row = rand()%3 + 8;
+                    col = 0;
+                    break;
+                default:
+                    row = rand()%2 + 6;
+                    col = rand()%3 + 3;
+                    break;
                 }
                 row *= tileSize;
                 col *= tileSize;
-                // Create GraphicsPixmapItem from specific tile in tileset and add to the scene.
                 QGraphicsPixmapItem *tile = new QGraphicsPixmapItem(tileset->copy(col, row, tileSize, tileSize));
                 tile->setPos(x, y);
-                tile->setZValue(-1); // Ensure that tiles are behind everything else.
+                tile->setZValue(-1);
                 gameScene->addItem(tile);
             }
 
             if (barrierGrid[i][j] != 0)
             {
-                int row = 0; // Row position in pixmap to copy from.
-                int col = 0; // Column position in pixmap to copy from.
+                int row = 0;
+                int col = 0;
                 switch (barrierGrid[i][j])
                 {
-                case 1: // Grass Variant:
-                    row = rand()%2 + 6; // Random variant row index.
-                    col = rand()%3 + 3; // Random variant column index.
-                break;
-                case 2: // Sand:
-                    row = 2; // Sand pixmap row index.
-                    col = 0; // Sand pixmap column index.
-                break;
-                case 3: // Water:
-                    row = 0; // Water pixmap row index.
-                    col = 1; // Water pixmap column index.
-                break;
-                case 4: // Lava:
-                    row = 0; // Lava pixmap row index.
-                    col = 3; // Lava pixmap column index.
-                break;
-                case 5: // Brick Variant:
-                    row = rand()%3 + 8; // Random variant row index.
-                    col = 0; // Brick column index.
-                break;
-                default: // Brick Variant:
-                    row = rand()%3 + 8; // Random variant row index.
-                    col = 0; // Brick column index.
-                break;
+                    case 1:
+                        row = rand()%2 + 6;
+                        col = rand()%3 + 3;
+                        break;
+                    case 2:
+                        row = 2;
+                        col = 0;
+                        break;
+                    case 3:
+                        row = 0;
+                        col = 1;
+                        break;
+                    case 4:
+                        row = 0;
+                        col = 3;
+                        break;
+                    case 5:
+                        row = rand()%3 + 8;
+                        col = 0;
+                        break;
+                    default:
+                        row = rand()%2 + 6;
+                        col = rand()%3 + 3;
+                        break;
                 }
                 row *= tileSize;
                 col *= tileSize;
-                // Create GraphicsPixmapItem from specific tile in tileset and add to the scene.
                 QGraphicsPixmapItem *barrier = new QGraphicsPixmapItem(tileset->copy(col, row, tileSize, tileSize));
                 barrier->setPos(x, y - tileSize/2);
+                barrier->setZValue(0);
                 gameScene->addItem(barrier);
+                qDebug() << "Added barrier at" << barrier->pos() << "with zValue" << barrier->zValue() << "using tile" << barrierGrid[i][j];
             }
         }
     }
     qDebug() << "Added tiles and barriers to GraphicsView.";
-
 }
 
 void GameMapDialog::genMap()
 {
-    // CODE HERE!!
-
+    // Placeholder for random map generation
 }
