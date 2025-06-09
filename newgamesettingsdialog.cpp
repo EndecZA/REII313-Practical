@@ -57,7 +57,7 @@ NewGameSettingsDialog::NewGameSettingsDialog(QWidget *parent)
 
     // Map combo box
     mapCombo = new QComboBox(this);
-    mapCombo->addItems({"Map 1", "Map 2", "Map 3", "Random"});
+    mapCombo->addItems({"Map 1", "Map 2", "Map 3"});
     mapCombo->setStyleSheet(
         "QComboBox {"
         "   background-color: #FFB347;"
