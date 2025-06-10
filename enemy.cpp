@@ -9,140 +9,244 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
     setPos(position);
     QString pixmapPath;
     QPixmap spriteSheet;
+    QPixmap framePixmap;
     switch (type) {
-        case Skeleton:
+        case Skeleton: {
             health = 16; damage = 1; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
             pixmapPath = ":/resources/images/Skeleton.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Skeleton at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Center x - half width
+                int y = 151 - 11; // Center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame centered at (52, 151)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Skeleton from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Skeleton_Archer:
+        }
+        case Skeleton_Archer: {
             health = 16; damage = 1; walkSpeed = 0.8; attackSpeed = 1; attackRange = 5;
             pixmapPath = ":/resources/images/Skeleton_Archer.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Skeleton_Archer at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Skeleton_Archer from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Armoured_Skeleton:
+        }
+        case Armoured_Skeleton: {
             health = 64; damage = 4; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
             pixmapPath = ":/resources/images/Armored_Skeleton.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Armoured_Skeleton at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Armoured_Skeleton from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Wizard:
+        }
+        case Wizard: {
             health = 80; damage = 3; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
             pixmapPath = ":/resources/images/Wizard.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Wizard at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Wizard from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Orc:
+        }
+        case Orc: {
             health = 56; damage = 20; walkSpeed = 0.8; attackSpeed = 1.2; attackRange = 1;
             pixmapPath = ":/resources/images/Orc.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Orc at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Orc from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Armoured_Orc:
+        }
+        case Armoured_Orc: {
             health = 128; damage = 20; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
             pixmapPath = ":/resources/images/Armored_Orc.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Armoured_Orc at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Armoured_Orc from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Elite_Orc:
+        }
+        case Elite_Orc: {
             health = 480; damage = 20; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
             pixmapPath = ":/resources/images/Elite_Orc.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Elite_Orc at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Elite_Orc from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Orc_rider:
+        }
+        case Orc_rider: {
             health = 48; damage = 10; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
             pixmapPath = ":/resources/images/Orc_Rider.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Orc_rider at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Orc_rider from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Knight:
+        }
+        case Knight: {
             health = 240; damage = 15; walkSpeed = 0.8; attackSpeed = 0.8; attackRange = 1;
             pixmapPath = ":/resources/images/Knight.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Knight at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Knight from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Knight_Templar:
+        }
+        case Knight_Templar: {
             health = 960; damage = 25; walkSpeed = 0.8; attackSpeed = 0.8; attackRange = 1;
             pixmapPath = ":/resources/images/Knight_Templar.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Knight_Templar at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Knight_Templar from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Werebear:
+        }
+        case Werebear: {
             health = 280; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
             pixmapPath = ":/resources/images/Werebear.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Werebear at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Werebear from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
-        case Cleric:
+        }
+        case Cleric: {
             health = 560; damage = 20; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
             pixmapPath = ":/resources/images/Cleric.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
                 qDebug() << "Failed to load sprite sheet for Cleric at" << pixmapPath;
-                break;
+            } else {
+                int x = 52 - 16; // Placeholder center x - half width
+                int y = 151 - 11; // Placeholder center y - half height
+                framePixmap = spriteSheet.copy(x, y, 32, 22); // First frame (placeholder)
+                if (framePixmap.isNull()) {
+                    qDebug() << "Failed to copy frame for Cleric from" << pixmapPath << "at" << x << "," << y;
+                } else {
+                    setPixmap(framePixmap.scaled(32, 32, Qt::KeepAspectRatio));
+                }
             }
-            setPixmap(spriteSheet.copy(0, 0, 16, 16).scaled(64, 64, Qt::KeepAspectRatio));
             break;
+        }
     }
     QPixmap currentPixmap = pixmap();
-    qDebug() << "Pixmap for type" << type << "size:" << currentPixmap.width() << "x" << currentPixmap.height() << "valid:" << !currentPixmap.isNull();
+    qDebug() << "Final pixmap for type" << type << "size:" << currentPixmap.width() << "x" << currentPixmap.height() << "valid:" << !currentPixmap.isNull();
     if (currentPixmap.isNull()) {
-        qDebug() << "Failed to set pixmap for enemy type:" << type << "path:" << pixmapPath;
+        qDebug() << "Final pixmap is null for enemy type:" << type << "path:" << pixmapPath;
     } else {
-        qDebug() << "Set pixmap for enemy type:" << type << "path:" << pixmapPath;
+        qDebug() << "Final pixmap set for enemy type:" << type << "path:" << pixmapPath;
+    }
+
+    if (pixmap().isNull()) {
+        qDebug() << "Using fallback pixmap for type" << type;
+        QPixmap fallback(32, 32); // Match new size
+        fallback.fill(Qt::red); // Red square as fallback
+        setPixmap(fallback);
     }
 
     attackCooldown = 1.0f;
     lastAttackTime = QTime::currentTime();
-    frameWidth = 16;
-    frameHeight = 16;
+    frameWidth = 32; // Match actual frame width
+    frameHeight = 22; // Match actual frame height
     stateFrameCounts[Idle] = 1; // Disable multi-frame animation for now
     stateFrameCounts[Moving] = 1;
     stateFrameCounts[Attacking] = 1;
@@ -152,15 +256,15 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
     animationTimer = 0;
     frameDuration = 0.1f;
 }
+
 void Enemy::UpdateAnimation()
 {
-    // Disable animation for now, use single frame
-    // animationTimer += frameDuration;
-    // if (animationTimer >= frameDuration) {
-    //     currentFrame = (currentFrame + 1) % stateFrameCounts[state];
-    //     animationTimer = 0;
-    //     // Placeholder for sprite sheet animation
-    // }
+     animationTimer += frameDuration;
+     if (animationTimer >= frameDuration) {
+         currentFrame = (currentFrame + 1) % stateFrameCounts[state];
+         animationTimer = 0;
+         // Placeholder for sprite sheet animation
+     }
 }
 
 Enemy::Enemy()
