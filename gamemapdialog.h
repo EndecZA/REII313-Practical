@@ -13,6 +13,10 @@
 #include <QVector>
 #include <QFile>
 #include <QTimer>
+#include <QPointF>
+#include <QPair>
+#include <QQueue>
+#include <QMap>
 #include "enemy.h"
 
 enum difficulty
@@ -37,6 +41,7 @@ public:
     bool getMultiplayer();
     void drawMap();
     void updateBitcoinDisplay();
+    QVector<QPointF> findPath(const QPointF& start, const QPointF& target);
 
 private:
     enum difficulty gameDifficulty;
@@ -60,9 +65,9 @@ private:
     int enemiesPerWave;
     int bitcoinCount;
     QGraphicsTextItem *bitcoinText;
-    QGraphicsRectItem *bitcoinBackground; // Background for Bitcoin display
-    QGraphicsPixmapItem *bitcoinIcon; // Bitcoin icon
-    QGraphicsItemGroup *bitcoinGroup; // Group for text, background, and icon
+    QGraphicsRectItem *bitcoinBackground;
+    QGraphicsPixmapItem *bitcoinIcon;
+    QGraphicsItemGroup *bitcoinGroup;
 
     void genMap();
     void spawnEnemy(EnemyType type, const QPointF& pos);

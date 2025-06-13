@@ -5,24 +5,27 @@
 #include <QPointF>
 #include <QTime>
 
-enum EnemyType {Skeleton, Skeleton_Archer, Armoured_Skeleton, Wizard, Orc, Armoured_Orc, Elite_Orc, Orc_rider, Knight, Knight_Templar, Werebear, Cleric };
+class GameMapDialog;
+
+enum EnemyType {Skeleton, Skeleton_Archer, Armoured_Skeleton, Wizard, Orc, Armoured_Orc, Elite_Orc, Orcastor, Knight, Knight_Templar, Werebear, Cleric };
 enum EnemyState {Moving, Attacking, Dying, Idle};
 
 class Enemy : public QGraphicsPixmapItem
 {
 public:
-    Enemy(EnemyType type, const QPointF& position);
+    Enemy(EnemyType type, const QPointF& position, GameMapDialog* mapDialog = nullptr);
     Enemy();
+    ~Enemy();
 
-    int getHealth() const;
+    int getHealth();
     void setHealth(int health);
-    int getDamage() const;
+    int getDamage();
     void setDamage(int newDamage);
-    float getSpeed() const;
-    EnemyType getType() const;
+    float getSpeed();
+    EnemyType getType();
     void takeDamage(int damage);
-    bool isAlive() const;
-    int getBitcoinReward() const; // New getter for Bitcoin reward
+    bool isAlive();
+    int getBitcoinReward();
 
     void attack();
     bool canAttack();
@@ -39,7 +42,7 @@ private:
     float walkSpeed;
     float attackSpeed;
     float attackRange;
-    int bitcoinReward; // New member to store Bitcoin reward
+    int bitcoinReward;
     QPointF target;
     QTime lastAttackTime;
     float attackCooldown;
@@ -52,6 +55,7 @@ private:
     float animationTimer;
     float frameDuration;
     QMap<EnemyState, int> stateFrameCounts;
+    GameMapDialog* mapDialog;
 };
 
 #endif // ENEMY_H

@@ -4,6 +4,11 @@
 #include <QByteArray>
 #include <QTimer>
 #include <QFont>
+#include <QSet>
+#include <limits>
+#include <QPair>
+#include <vector>
+#include <cmath>
 
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
@@ -32,47 +37,40 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     isMultiplayer = false;
     bitcoinCount = 0;
 
-    // Initialize Bitcoin display
     bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
-    bitcoinText->setFont(QFont("Arial", 10)); // Reduced font size to 10
+    bitcoinText->setFont(QFont("Arial", 10));
     bitcoinText->setDefaultTextColor(Qt::white);
 
-    // Initialize Bitcoin background
-    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40); // Smaller initial size
-    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128))); // Black with 50% opacity
+    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
+    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
     bitcoinBackground->setPen(Qt::NoPen);
 
-    // Initialize Bitcoin icon
     QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
     if (bitcoinPixmap.isNull()) {
         qDebug() << "Failed to load bitcoin.png";
-        bitcoinPixmap = QPixmap(32, 32); // Fallback size matches icon size
-        bitcoinPixmap.fill(Qt::yellow); // Fallback yellow square
+        bitcoinPixmap = QPixmap(32, 32);
+        bitcoinPixmap.fill(Qt::yellow);
     }
-    bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio)); // Icon remains 32x32
+    bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
 
-    // Group text, background, and icon
     bitcoinGroup = new QGraphicsItemGroup();
     bitcoinGroup->addToGroup(bitcoinBackground);
     bitcoinGroup->addToGroup(bitcoinIcon);
     bitcoinGroup->addToGroup(bitcoinText);
-    bitcoinGroup->setZValue(11); // Ensure group is on top
+    bitcoinGroup->setZValue(11);
     gameScene->addItem(bitcoinGroup);
 
-    // Position elements in the top-left corner
-    bitcoinBackground->setPos(5, 5); // 5-pixel padding
-    bitcoinIcon->setPos(10 + 5, 8); // Icon after padding, adjusted for alignment
-    bitcoinText->setPos(10 + 32 + 8, 10); // Text after 32px icon with 3-pixel gap
+    bitcoinBackground->setPos(5, 5);
+    bitcoinIcon->setPos(10 + 5, 8);
+    bitcoinText->setPos(10 + 32 + 8, 10);
 
     srand(time(0));
     tileset = new QPixmap(":/resources/images/tileset.png");
     drawMap();
 
-    // Add debug rectangle for scene boundaries
     QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
     debugRect->setZValue(10);
 
-    // Highlight spawn points
     QVector<QPointF> spawnPoints = getSpawnPoints();
     for (const QPointF& point : spawnPoints) {
         QGraphicsRectItem* spawnMarker = gameScene->addRect(point.x() - 16, point.y() - 16, 32, 32, QPen(Qt::yellow), QBrush(Qt::yellow));
@@ -93,7 +91,18 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 
 void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
 {
-    Enemy* enemy = new Enemy(type, pos);
+    // Force spawn point to be walkable
+    int gridX = static_cast<int>(pos.x() / tileSize);
+    int gridY = static_cast<int>(pos.y() / (tileSize / 2));
+    if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
+        mapGrid[gridY][gridX] = 1; // Grass tile
+        barrierGrid[2 * mapHeight - gridY - 1][gridX] = 0; // No barrier
+        qDebug() << "Forced spawn point" << pos << "to grass at grid (" << gridX << "," << gridY << ")";
+    } else {
+        qDebug() << "Error: Spawn point" << pos << "outside bounds";
+    }
+
+    Enemy* enemy = new Enemy(type, pos, this);
     if (enemy->pixmap().isNull()) {
         qDebug() << "Skipping spawn of type" << type << "due to null pixmap at" << pos;
         delete enemy;
@@ -113,9 +122,8 @@ void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
     enemy->setZValue(1);
     enemies.append(enemy);
     gameScene->addItem(enemy);
-    qDebug() << "Spawned enemy type" << type << "at" << pos << "with zValue" << enemy->zValue();
+    qDebug() << "Spawned enemy type" << type << "at" << pos;
 
-    // Temporary debug marker
     QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
     marker->setZValue(2);
     marker->setOpacity(0.5);
@@ -124,35 +132,16 @@ void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
 QVector<QPointF> GameMapDialog::getSpawnPoints()
 {
     QVector<QPointF> spawnPoints;
-    switch (mapType) {
-        case map1:
-            spawnPoints << QPointF(tileSize * 2, tileSize * 2)
-                        << QPointF(tileSize * 10, tileSize * 2);
-            break;
-        case map2:
-            spawnPoints << QPointF(tileSize * 5, tileSize * 3)
-                        << QPointF(tileSize * 12, tileSize * 3);
-            break;
-        case map3:
-            spawnPoints << QPointF(tileSize * 3, tileSize * 4)
-                        << QPointF(tileSize * 8, tileSize * 4);
-            break;
-    }
+    spawnPoints << QPointF(80, 35) << QPointF(320, 95);
     for (const QPointF& point : spawnPoints) {
         int gridX = static_cast<int>(point.x() / tileSize);
         int gridY = static_cast<int>(point.y() / (tileSize / 2));
         if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
-            if (mapGrid[gridY][gridX] != 1 && mapGrid[gridY][gridX] != 2) {
-                qDebug() << "Warning: Spawn point" << point << "is on non-walkable tile" << mapGrid[gridY][gridX];
-            }
-            if (barrierGrid[2 * mapHeight - gridY - 1][gridX] != 0) {
-                qDebug() << "Warning: Spawn point" << point << "overlaps with barrier";
-            }
+            qDebug() << "Spawn point" << point << "grid (" << gridX << "," << gridY << ")";
         } else {
-            qDebug() << "Error: Spawn point" << point << "is outside map bounds";
+            qDebug() << "Error: Spawn point" << point << "outside bounds";
         }
     }
-    qDebug() << "Spawn points:" << spawnPoints;
     return spawnPoints;
 }
 
@@ -208,9 +197,8 @@ void GameMapDialog::updateGame()
 void GameMapDialog::updateBitcoinDisplay()
 {
     bitcoinText->setPlainText(QString("Bitcoins: %1").arg(bitcoinCount));
-    // Adjust background size dynamically to fit smaller text and 32px icon
-    qreal bgWidth = bitcoinText->boundingRect().width() + 32 + 12; // Text width + 32px icon + reduced padding
-    qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8; // Max of text/icon height + reduced padding
+    qreal bgWidth = bitcoinText->boundingRect().width() + 32 + 12;
+    qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8;
     bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
 }
 
@@ -423,4 +411,111 @@ void GameMapDialog::drawMap()
 void GameMapDialog::genMap()
 {
     // Placeholder for random map generation
+}
+
+QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& target)
+{
+    // Snap position to grid center
+    int startX = static_cast<int>(std::round(start.x() / tileSize));
+    int startY = static_cast<int>(std::round(start.y() / (tileSize / 2)));
+    int targetX = static_cast<int>(target.x() / tileSize);
+    int targetY = static_cast<int>(target.y() / (tileSize / 2));
+
+    // Validate bounds
+    if (startX < 0 || startX >= 2 * mapWidth || startY < 0 || startY >= 2 * mapHeight ||
+        targetX < 0 || targetX >= 2 * mapWidth || targetY < 0 || targetY >= 2 * mapHeight) {
+        qDebug() << "Pathfinding failed: Start" << start << "(grid:" << startX << "," << startY << ") or target" << target << "(grid:" << targetX << "," << targetY << ") out of bounds";
+        return QVector<QPointF>();
+    }
+
+    // Adjust start to nearest grass tile if not walkable
+    QPointF adjustedStart = QPointF(startX * tileSize + tileSize / 2, startY * (tileSize / 2) + tileSize / 4);
+    if (mapGrid[startY][startX] != 1 || barrierGrid[2 * mapHeight - startY - 1][startX] != 0) {
+        qDebug() << "Start" << start << "not walkable (mapGrid:" << mapGrid[startY][startX]
+                 << ", barrierGrid:" << barrierGrid[2 * mapHeight - startY - 1][startX] << ")";
+        int minDist = std::numeric_limits<int>::max();
+        int nearestX = startX;
+        int nearestY = startY;
+        for (int y = 0; y < 2 * mapHeight; ++y) {
+            for (int x = 0; x < 2 * mapWidth; ++x) {
+                if (mapGrid[y][x] == 1 && barrierGrid[2 * mapHeight - y - 1][x] == 0) {
+                    int dist = abs(x - startX) + abs(y - startY);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearestX = x;
+                        nearestY = y;
+                    }
+                }
+            }
+        }
+        if (minDist != std::numeric_limits<int>::max()) {
+            startX = nearestX;
+            startY = nearestY;
+            adjustedStart = QPointF(startX * tileSize + tileSize / 2, startY * (tileSize / 2) + tileSize / 4);
+            qDebug() << "Adjusted start to" << adjustedStart << "grid (" << startX << "," << startY << ")";
+        } else {
+            qDebug() << "No walkable tiles near" << start;
+            return QVector<QPointF>();
+        }
+    }
+
+    // Track visited tiles to prevent loops
+    static QSet<QPair<int, int>> visited;
+    if (visited.size() > 100) visited.clear(); // Reset if too large
+    visited.insert({startX, startY});
+
+    // Check adjacent tiles
+    QVector<QPair<int, int>> directions = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+    qreal minDistance = std::numeric_limits<qreal>::max();
+    QPair<int, int> bestTile = {startX, startY}; // Stay put if no valid move
+
+    for (const auto& dir : directions) {
+        int newX = startX + dir.first;
+        int newY = startY + dir.second;
+
+        // Check bounds
+        if (newX < 0 || newX >= 2 * mapWidth || newY < 0 || newY >= 2 * mapHeight) continue;
+
+        // Check walkability
+        int barrierY = 2 * mapHeight - newY - 1;
+        if (barrierGrid[barrierY][newX] != 0 || mapGrid[newY][newX] != 1) continue;
+
+        // Skip recently visited tiles to prevent loops
+        if (visited.contains({newX, newY})) continue;
+
+        // Calculate Euclidean distance to target
+        qreal pixelX = newX * tileSize + tileSize / 2;
+        qreal pixelY = newY * (tileSize / 2) + tileSize / 4;
+        qreal dx = pixelX - target.x();
+        qreal dy = pixelY - target.y();
+        qreal distance = std::sqrt(dx * dx + dy * dy);
+
+        qDebug() << "Checking tile (" << newX << "," << newY << ") at" << QPointF(pixelX, pixelY)
+                 << "distance to target" << distance;
+
+        if (distance < minDistance) {
+            minDistance = distance;
+            bestTile = {newX, newY};
+        }
+    }
+
+    // If no better tile, stay put
+    if (bestTile.first == startX && bestTile.second == startY) {
+        qDebug() << "No valid adjacent tile closer to target from" << adjustedStart;
+        visited.clear(); // Reset visited to allow retry
+        return QVector<QPointF>{adjustedStart};
+    }
+
+    // Convert best tile to pixel coordinates
+    qreal pixelX = bestTile.first * tileSize + tileSize / 2;
+    qreal pixelY = bestTile.second * (tileSize / 2) + tileSize / 4;
+    QPointF nextPoint(pixelX, pixelY);
+
+    // Draw debug line
+    QGraphicsLineItem *line = gameScene->addLine(adjustedStart.x(), adjustedStart.y(),
+                                                 nextPoint.x(), nextPoint.y(), QPen(Qt::green, 2));
+    line->setZValue(8);
+
+    qDebug() << "Next step from" << adjustedStart << "to" << nextPoint << "distance" << minDistance;
+    return QVector<QPointF>{nextPoint};
 }
