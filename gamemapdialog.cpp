@@ -260,6 +260,7 @@ void GameMapDialog::drawMap()
                 // Create GraphicsPixmapItem from specific tile in tileset and add to the scene.
                 QGraphicsPixmapItem *barrier = new QGraphicsPixmapItem(tileset->copy(col, row, tileSize, tileSize));
                 barrier->setPos(x, y - tileSize/2);
+                barrier->setZValue(-1); // Ensure that tiles are behind everything else.
                 gameScene->addItem(barrier);
             }
         }

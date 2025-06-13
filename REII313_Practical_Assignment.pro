@@ -15,7 +15,8 @@ SOURCES += \
     mainwindow.cpp \
     multiplayeroptionsdialog.cpp \
     newgamesettingsdialog.cpp \
-    singleplayeroptionsdialog.cpp
+    singleplayeroptionsdialog.cpp \
+    tower.cpp
 
 HEADERS += \
     enemy.h \
@@ -23,7 +24,8 @@ HEADERS += \
     mainwindow.h \
     multiplayeroptionsdialog.h \
     newgamesettingsdialog.h \
-    singleplayeroptionsdialog.h
+    singleplayeroptionsdialog.h \
+    tower.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
