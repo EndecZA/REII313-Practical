@@ -3,6 +3,7 @@
 #include <ctime>
 #include <QByteArray>
 #include <QTimer>
+#include <QFont>
 
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
@@ -29,6 +30,39 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameDifficulty = medium;
     mapType = map1;
     isMultiplayer = false;
+    bitcoinCount = 0;
+
+    // Initialize Bitcoin display
+    bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
+    bitcoinText->setFont(QFont("Arial", 10)); // Reduced font size to 10
+    bitcoinText->setDefaultTextColor(Qt::white);
+
+    // Initialize Bitcoin background
+    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40); // Smaller initial size
+    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128))); // Black with 50% opacity
+    bitcoinBackground->setPen(Qt::NoPen);
+
+    // Initialize Bitcoin icon
+    QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
+    if (bitcoinPixmap.isNull()) {
+        qDebug() << "Failed to load bitcoin.png";
+        bitcoinPixmap = QPixmap(32, 32); // Fallback size matches icon size
+        bitcoinPixmap.fill(Qt::yellow); // Fallback yellow square
+    }
+    bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio)); // Icon remains 32x32
+
+    // Group text, background, and icon
+    bitcoinGroup = new QGraphicsItemGroup();
+    bitcoinGroup->addToGroup(bitcoinBackground);
+    bitcoinGroup->addToGroup(bitcoinIcon);
+    bitcoinGroup->addToGroup(bitcoinText);
+    bitcoinGroup->setZValue(11); // Ensure group is on top
+    gameScene->addItem(bitcoinGroup);
+
+    // Position elements in the top-left corner
+    bitcoinBackground->setPos(5, 5); // 5-pixel padding
+    bitcoinIcon->setPos(10 + 5, 8); // Icon after padding, adjusted for alignment
+    bitcoinText->setPos(10 + 32 + 8, 10); // Text after 32px icon with 3-pixel gap
 
     srand(time(0));
     tileset = new QPixmap(":/resources/images/tileset.png");
@@ -153,10 +187,31 @@ void GameMapDialog::startNextWave()
 
 void GameMapDialog::updateGame()
 {
+    QVector<Enemy*> enemiesToRemove;
     for (Enemy* enemy : enemies) {
-        enemy->update();
+        if (!enemy->isAlive()) {
+            bitcoinCount += enemy->getBitcoinReward();
+            enemiesToRemove.append(enemy);
+            gameScene->removeItem(enemy);
+        } else {
+            enemy->update();
+        }
     }
+    for (Enemy* enemy : enemiesToRemove) {
+        enemies.removeOne(enemy);
+        delete enemy;
+    }
+    updateBitcoinDisplay();
     gameScene->update();
+}
+
+void GameMapDialog::updateBitcoinDisplay()
+{
+    bitcoinText->setPlainText(QString("Bitcoins: %1").arg(bitcoinCount));
+    // Adjust background size dynamically to fit smaller text and 32px icon
+    qreal bgWidth = bitcoinText->boundingRect().width() + 32 + 12; // Text width + 32px icon + reduced padding
+    qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8; // Max of text/icon height + reduced padding
+    bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
 }
 
 void GameMapDialog::setDifficulty(int dif)

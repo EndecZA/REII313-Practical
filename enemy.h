@@ -22,6 +22,7 @@ public:
     EnemyType getType() const;
     void takeDamage(int damage);
     bool isAlive() const;
+    int getBitcoinReward() const; // New getter for Bitcoin reward
 
     void attack();
     bool canAttack();
@@ -38,6 +39,7 @@ private:
     float walkSpeed;
     float attackSpeed;
     float attackRange;
+    int bitcoinReward; // New member to store Bitcoin reward
     QPointF target;
     QTime lastAttackTime;
     float attackCooldown;

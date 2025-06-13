@@ -13,6 +13,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
     switch (type) {
         case Skeleton: {
             health = 16; damage = 1; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
+            bitcoinReward = 5; // Bitcoin reward for Skeleton
             pixmapPath = ":/resources/images/Skeleton.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -31,6 +32,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Skeleton_Archer: {
             health = 16; damage = 1; walkSpeed = 0.8; attackSpeed = 1; attackRange = 5;
+            bitcoinReward = 7; // Bitcoin reward for Skeleton_Archer
             pixmapPath = ":/resources/images/Skeleton_Archer.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -49,6 +51,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Armoured_Skeleton: {
             health = 64; damage = 4; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
+            bitcoinReward = 15; // Bitcoin reward for Armoured_Skeleton
             pixmapPath = ":/resources/images/Armored_Skeleton.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -67,6 +70,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Wizard: {
             health = 80; damage = 3; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
+            bitcoinReward = 20; // Bitcoin reward for Wizard
             pixmapPath = ":/resources/images/Wizard.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -85,6 +89,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Orc: {
             health = 56; damage = 20; walkSpeed = 0.8; attackSpeed = 1.2; attackRange = 1;
+            bitcoinReward = 12; // Bitcoin reward for Orc
             pixmapPath = ":/resources/images/Orc.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -103,6 +108,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Armoured_Orc: {
             health = 128; damage = 20; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
+            bitcoinReward = 25; // Bitcoin reward for Armoured_Orc
             pixmapPath = ":/resources/images/Armored_Orc.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -121,6 +127,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Elite_Orc: {
             health = 480; damage = 20; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
+            bitcoinReward = 50; // Bitcoin reward for Elite_Orc
             pixmapPath = ":/resources/images/Elite_Orc.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -139,6 +146,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Orc_rider: {
             health = 48; damage = 10; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
+            bitcoinReward = 10; // Bitcoin reward for Orc_rider
             pixmapPath = ":/resources/images/Orc_Rider.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -157,6 +165,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Knight: {
             health = 240; damage = 15; walkSpeed = 0.8; attackSpeed = 0.8; attackRange = 1;
+            bitcoinReward = 30; // Bitcoin reward for Knight
             pixmapPath = ":/resources/images/Knight.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -175,6 +184,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Knight_Templar: {
             health = 960; damage = 25; walkSpeed = 0.8; attackSpeed = 0.8; attackRange = 1;
+            bitcoinReward = 75; // Bitcoin reward for Knight_Templar
             pixmapPath = ":/resources/images/Knight_Templar.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -193,6 +203,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Werebear: {
             health = 280; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
+            bitcoinReward = 35; // Bitcoin reward for Werebear
             pixmapPath = ":/resources/images/Werebear.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -211,6 +222,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position)
         }
         case Cleric: {
             health = 560; damage = 20; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
+            bitcoinReward = 40; // Bitcoin reward for Cleric
             pixmapPath = ":/resources/images/Cleric.png";
             spriteSheet = QPixmap(pixmapPath);
             if (spriteSheet.isNull()) {
@@ -269,7 +281,7 @@ void Enemy::UpdateAnimation()
 
 Enemy::Enemy()
     : QGraphicsPixmapItem(), type(Skeleton), health(16), damage(1), walkSpeed(0.8), attackSpeed(1), attackRange(1),
-      state(Idle), currentFrame(0), animationTimer(0), frameDuration(0.1f)
+      bitcoinReward(5), state(Idle), currentFrame(0), animationTimer(0), frameDuration(0.1f)
 {
     setPixmap(QPixmap(":/resources/images/Skeleton.png"));
     attackCooldown = 1.0f;
@@ -312,6 +324,11 @@ EnemyType Enemy::getType() const
     return type;
 }
 
+int Enemy::getBitcoinReward() const
+{
+    return bitcoinReward;
+}
+
 void Enemy::takeDamage(int damage)
 {
     health -= damage;
@@ -349,8 +366,6 @@ void Enemy::setState(EnemyState newState)
         animationTimer = 0;
     }
 }
-
-
 
 void Enemy::update()
 {

@@ -5,7 +5,10 @@
 #include <QWidget>
 #include <QGraphicsView>
 #include <QGraphicsScene>
+#include <QGraphicsTextItem>
+#include <QGraphicsRectItem>
 #include <QGraphicsPixmapItem>
+#include <QGraphicsItemGroup>
 #include <QPixmap>
 #include <QVector>
 #include <QFile>
@@ -33,6 +36,7 @@ public:
     int getMap();
     bool getMultiplayer();
     void drawMap();
+    void updateBitcoinDisplay();
 
 private:
     enum difficulty gameDifficulty;
@@ -54,6 +58,11 @@ private:
     int currentWave;
     int enemiesToSpawn;
     int enemiesPerWave;
+    int bitcoinCount;
+    QGraphicsTextItem *bitcoinText;
+    QGraphicsRectItem *bitcoinBackground; // Background for Bitcoin display
+    QGraphicsPixmapItem *bitcoinIcon; // Bitcoin icon
+    QGraphicsItemGroup *bitcoinGroup; // Group for text, background, and icon
 
     void genMap();
     void spawnEnemy(EnemyType type, const QPointF& pos);
