@@ -399,7 +399,7 @@ void GameMapDialog::drawMap()
                 col *= tileSize;
                 QGraphicsPixmapItem *barrier = new QGraphicsPixmapItem(tileset->copy(col, row, tileSize, tileSize));
                 barrier->setPos(x, y - tileSize/2);
-                barrier->setZValue(0);
+                barrier->setZValue(-1);
                 gameScene->addItem(barrier);
                 qDebug() << "Added barrier at" << barrier->pos() << "with zValue" << barrier->zValue() << "using tile" << barrierGrid[i][j];
             }

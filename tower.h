@@ -1,8 +1,8 @@
 #ifndef TOWER_H
 #define TOWER_H
 
-#include <QGraphicsPixmapItem>
 #include <QObject>
+#include <QGraphicsPixmapItem>
 #include <QWidget>
 #include <QPixmap>
 #include "enemy.h"
@@ -10,12 +10,12 @@
 enum towerType {barricade, melee, archer, fire, wizard};
 enum towerState {idle, attacking};
 
-class Tower : public QGraphicsPixmapItem
+class Tower : public QObject, public QGraphicsPixmapItem
 {
     Q_OBJECT
 
 public:
-    Tower(towerType);
+    explicit Tower(towerType, QObject *parent = nullptr);
     int getCost();
     void connectEnemy(Enemy*); // Function to connect/disconnect any enemy to the tower's attacking signal.
                                // Each connected enemy takes damage per attack.

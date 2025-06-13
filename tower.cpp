@@ -1,36 +1,41 @@
 #include "tower.h"
 
-Tower::Tower(towerType t)
+Tower::Tower(towerType t, QObject *parent) : QObject(parent), QGraphicsPixmapItem()
 {
     type = t;
 
     switch (type)
     {
         case barricade:
+            pixmap = new QPixmap("qrc:/resources/images/Wizard.png"); // TEMP
             cost = 50;
             damage = 0;
             fireRate = 0;
             range = 1;
         break;
         case melee:
+            pixmap = new QPixmap("qrc:/resources/images/Wizard.png");
             cost = 75;
             damage = 15;
             fireRate = 10;
             range = 2;
         break;
         case archer:
+            pixmap = new QPixmap("qrc:/resources/images/Wizard.png");
             cost = 100;
             damage = 20;
             fireRate = 20;
             range = 5;
         break;
         case fire:
+            pixmap = new QPixmap("qrc:/resources/images/Wizard.png");
             cost = 125;
             damage = 50;
             fireRate = 10;
             range = 3;
         break;
         case wizard:
+            pixmap = new QPixmap("qrc:/resources/images/Wizard.png");
             cost = 150;
             damage = 100;
             fireRate = 5;
@@ -87,10 +92,12 @@ void Tower::Tick() // Tick function for tower.
 {
     if (state == idle)
     {
-        // Play idle animation.
+        setPixmap(pixmap->copy(0, 0, 100, 100)); // TEMP
     }
     else
     {
+        setPixmap(pixmap->copy(0, 0, 100, 100)); // TEMP
+
         if (counter%fireRate == 0)
         {
             emit Attack(damage); // Attack all connected enemies.
