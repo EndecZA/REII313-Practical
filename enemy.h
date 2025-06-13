@@ -5,36 +5,34 @@
 #include <QPointF>
 #include <QTime>
 
-enum EnemyType {Skeleton, Skeleton_Archer, Armoured_Skeleton, Wizard, Orc, Armoured_Orc, Elite_Orc, Orc_rider, Knight, Knight_Templar, Werebear, Cleric };
-enum EnemyState {Moving, Attacking, Dying, Idle}; //The idling is used between the attacks of the enemy
+class GameMapDialog;
+
+enum EnemyType {Skeleton, Skeleton_Archer, Armoured_Skeleton, Wizard, Orc, Armoured_Orc, Elite_Orc, Orcastor, Knight, Knight_Templar, Werebear, Cleric };
+enum EnemyState {Moving, Attacking, Dying, Idle};
 
 class Enemy : public QGraphicsPixmapItem
 {
 public:
-    Enemy(EnemyType type, const QPointF& position, QWidget* parent = nullptr);
+    Enemy(EnemyType type, const QPointF& position, GameMapDialog* mapDialog = nullptr);
     Enemy();
+    ~Enemy();
 
-    //For the stat blocks of the enemies
-    int getHealth() const;
+    int getHealth();
     void setHealth(int health);
-    int getDamage() const;
-    float getSpeed() const;
-    EnemyType getType() const;
+    int getDamage();
+    void setDamage(int newDamage);
+    float getSpeed();
+    EnemyType getType();
     void takeDamage(int damage);
-    bool isAlive() const;
+    bool isAlive();
+    int getBitcoinReward();
 
-    //Pathfinding?
-
-
-    //Combat
     void attack();
-    bool canAttack(); //in range?
+    bool canAttack();
     float getAttackRange();
 
-    //Animation
     void setState(EnemyState state);
     void UpdateAnimation();
-
     void update();
 
 private:
@@ -44,19 +42,20 @@ private:
     float walkSpeed;
     float attackSpeed;
     float attackRange;
-   QPointF target;
-   QTime lastAttackTime;
-   float attackCooldown;
+    int bitcoinReward;
+    QPointF target;
+    QTime lastAttackTime;
+    float attackCooldown;
 
-   EnemyState state;
-   QPixmap spriteSheet;
+    EnemyState state;
+    QPixmap spriteSheet;
     int frameWidth;
     int frameHeight;
     int currentFrame;
-    float animationTimer; // Tracks time since last frame
-    float frameDuration; // Seconds per frame
-    QMap<EnemyState, int> stateFrameCounts; // Frames per state
-
+    float animationTimer;
+    float frameDuration;
+    QMap<EnemyState, int> stateFrameCounts;
+    GameMapDialog* mapDialog;
 };
 
 #endif // ENEMY_H

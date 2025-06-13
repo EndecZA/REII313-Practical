@@ -5,52 +5,75 @@
 #include <QWidget>
 #include <QGraphicsView>
 #include <QGraphicsScene>
+#include <QGraphicsTextItem>
+#include <QGraphicsRectItem>
 #include <QGraphicsPixmapItem>
+#include <QGraphicsItemGroup>
 #include <QPixmap>
 #include <QVector>
 #include <QFile>
+#include <QTimer>
+#include <QPointF>
+#include <QPair>
+#include <QQueue>
+#include <QMap>
+#include "enemy.h"
 
 enum difficulty
 {
-    easy,medium,hard
+    easy, medium, hard
 };
 
 enum map
 {
-    map1,map2,map3
+    map1, map2, map3
 };
 
 class GameMapDialog : public QDialog
 {
 public:
     explicit GameMapDialog(QWidget *parent = nullptr);
-    // Public access to game settings:
     void setDifficulty(int);
     void setMap(int);
     void setMultiplayer(bool);
     int getDifficulty();
     int getMap();
     bool getMultiplayer();
-    void drawMap(); // Function to create the game map from prebuilt maps.
+    void drawMap();
+    void updateBitcoinDisplay();
+    QVector<QPointF> findPath(const QPointF& start, const QPointF& target);
 
 private:
-    // Private game setting variables:
-    enum difficulty gameDifficulty; // Current selected difficulty.
-    enum map mapType; // Current selected map.
-    bool isMultiplayer; // Is game online.
-    static const int tileSize = 32; // Tile height and width in pixels.
-    static const int mapWidth = 15; // Amount of tiles horizontally.
-    static const int mapHeight = 30; // Amount of tiles vertically.
-    int mapGrid[2*mapHeight][2*mapWidth]; // Grid to store map and barriers.
-    int barrierGrid[2*mapHeight][2*mapWidth]; // Grid to store barrier locations for pathfinding.
+    enum difficulty gameDifficulty;
+    enum map mapType;
+    bool isMultiplayer;
+    static const int tileSize = 32;
+    static const int mapWidth = 15;
+    static const int mapHeight = 30;
+    int mapGrid[2*mapHeight][2*mapWidth];
+    int barrierGrid[2*mapHeight][2*mapWidth];
 
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
     QPixmap *tileset;
     QFile *mapFile;
+    QVector<Enemy*> enemies;
+    QTimer *waveTimer;
+    QTimer *updateTimer;
+    int currentWave;
+    int enemiesToSpawn;
+    int enemiesPerWave;
+    int bitcoinCount;
+    QGraphicsTextItem *bitcoinText;
+    QGraphicsRectItem *bitcoinBackground;
+    QGraphicsPixmapItem *bitcoinIcon;
+    QGraphicsItemGroup *bitcoinGroup;
 
-    void genMap(); // Function to generate a random map.
-
+    void genMap();
+    void spawnEnemy(EnemyType type, const QPointF& pos);
+    QVector<QPointF> getSpawnPoints();
+    void startNextWave();
+    void updateGame();
 };
 
 #endif // GAMEMAPDIALOG_H
