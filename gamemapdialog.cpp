@@ -20,7 +20,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     setWindowTitle("Game");
 
     gameScene = new QGraphicsScene(this);
-    gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight);
+    gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight+32);
     gameScene->setItemIndexMethod(QGraphicsScene::NoIndex);
     gameScene->setBackgroundBrush(Qt::black);
 
@@ -31,6 +31,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     int scale = 1920/(tileSize*mapWidth);
     gameView->scale(scale, scale);
+    gameView->centerOn(gameView->width()/2, 0);
     gameView->show();
 
     gameDifficulty = medium;
@@ -68,14 +69,14 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     tileset = new QPixmap(":/resources/images/tileset.png");
     drawMap();
 
-    QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
-    debugRect->setZValue(10);
+//    QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
+//    debugRect->setZValue(10);
 
     QVector<QPointF> spawnPoints = getSpawnPoints();
-    for (const QPointF& point : spawnPoints) {
-        QGraphicsRectItem* spawnMarker = gameScene->addRect(point.x() - 16, point.y() - 16, 32, 32, QPen(Qt::yellow), QBrush(Qt::yellow));
-        spawnMarker->setZValue(9);
-    }
+//    for (const QPointF& point : spawnPoints) {
+//        QGraphicsRectItem* spawnMarker = gameScene->addRect(point.x() - 16, point.y() - 16, 32, 32, QPen(Qt::yellow), QBrush(Qt::yellow));
+//        spawnMarker->setZValue(9);
+//    }
 
     currentWave = 0;
     enemiesPerWave = 5;
@@ -102,11 +103,10 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     }
 
     // TEMP TEST:
-    tower = new Tower(archer, this);
-    int row = 8;
-    int col = 4;
-    tower->setPos(32*col-8, row*16);
+    tower = new Tower(archer);
+    tileGrid[16][16]->addTower(tower);
     gameScene->addItem(tower);
+
 }
 
 void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
@@ -144,9 +144,9 @@ void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
     gameScene->addItem(enemy);
     qDebug() << "Spawned enemy type" << type << "at" << pos;
 
-    QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
-    marker->setZValue(2);
-    marker->setOpacity(0.5);
+//    QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
+//    marker->setZValue(2);
+//    marker->setOpacity(0.5);
 }
 
 QVector<QPointF> GameMapDialog::getSpawnPoints()
@@ -321,11 +321,15 @@ void GameMapDialog::drawMap()
             int tile = line.mid(0, p).toInt();
             line = line.mid(p+1);
 
+            // Populate mapGrid:
             if ((rows%2 == 0 && columns%2 == 0) || (rows%2 != 0 && columns%2 != 0))
-                mapGrid[rows][columns] = tile;
+            {
+                mapGrid[rows][columns] = (tile < 1) ? 1 : tile;
+            }
             else
                 mapGrid[rows][columns] = 0;
 
+            // Populate barrierGrid:
             if ((rows%2 == 0 && columns%2 != 0) || (rows%2 != 0 && columns%2 == 0))
                 barrierGrid[2*mapHeight - rows - 1][columns] = tile;
             else
@@ -345,90 +349,20 @@ void GameMapDialog::drawMap()
     {
         for (int j = 0; j<columns; ++j)
         {
-            int x = j*tileSize/2 - tileSize/4;
-            int y = i*tileSize/4 - tileSize/4 + rand()%5 - 2;
-
             if (mapGrid[i][j] != 0)
             {
-                int row = 0;
-                int col = 0;
-                switch (mapGrid[i][j])
-                {
-                case 1:
-                    row = rand()%2 + 6;
-                    col = rand()%3 + 3;
-                    break;
-                case 2:
-                    row = 2;
-                    col = 0;
-                    break;
-                case 3:
-                    row = 0;
-                    col = 1;
-                    break;
-                case 4:
-                    row = 0;
-                    col = 3;
-                    break;
-                case 5:
-                    row = rand()%3 + 8;
-                    col = 0;
-                    break;
-                default:
-                    row = rand()%2 + 6;
-                    col = rand()%3 + 3;
-                    break;
-                }
-                row *= tileSize;
-                col *= tileSize;
-                QGraphicsPixmapItem *tile = new QGraphicsPixmapItem(tileset->copy(col, row, tileSize, tileSize));
-                tile->setPos(x, y);
-                tile->setZValue(-1);
-                gameScene->addItem(tile);
-            }
-
-            if (barrierGrid[i][j] != 0)
+                tileGrid[i][j] = new Tile(mapGrid[i][j], barrierGrid[i][j], i, j);
+                gameScene->addItem(tileGrid[i][j]);
+                tileGrid[i][j]->setZValue(-1);
+            } 
+            else
             {
-                int row = 0;
-                int col = 0;
-                switch (barrierGrid[i][j])
-                {
-                    case 1:
-                        row = rand()%2 + 6;
-                        col = rand()%3 + 3;
-                        break;
-                    case 2:
-                        row = 2;
-                        col = 0;
-                        break;
-                    case 3:
-                        row = 0;
-                        col = 1;
-                        break;
-                    case 4:
-                        row = 0;
-                        col = 3;
-                        break;
-                    case 5:
-                        row = rand()%3 + 8;
-                        col = 0;
-                        break;
-                    default:
-                        row = rand()%2 + 6;
-                        col = rand()%3 + 3;
-                        break;
-                }
-                row *= tileSize;
-                col *= tileSize;
-                QGraphicsPixmapItem *barrier = new QGraphicsPixmapItem(tileset->copy(col, row, tileSize, tileSize));
-                barrier->setPos(x, y - tileSize/2);
-                barrier->setZValue(-1);
-                gameScene->addItem(barrier);
-                qDebug() << "Added barrier at" << barrier->pos() << "with zValue" << barrier->zValue() << "using tile" << barrierGrid[i][j];
+                tileGrid[i][j] = nullptr;
             }
         }
     }
     qDebug() << "Added tiles and barriers to GraphicsView.";
+
 }
 
 QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& target)
