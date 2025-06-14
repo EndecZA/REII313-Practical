@@ -12,73 +12,73 @@ Enemy::Enemy(EnemyType type, const QPointF& position, GameMapDialog* mapDialog)
     QPixmap framePixmap;
     switch (type) {
         case Skeleton: {
-            health = 16; damage = 1; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
+            health = 16; damage = 1; walkSpeed = 8.0f; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 5;
             pixmapPath = ":/resources/images/Skeleton.png";
             break;
         }
         case Skeleton_Archer: {
-            health = 16; damage = 1; walkSpeed = 0.8; attackSpeed = 1; attackRange = 5;
+            health = 16; damage = 1; walkSpeed = 8.0f; attackSpeed = 1; attackRange = 5;
             bitcoinReward = 7;
             pixmapPath = ":/resources/images/Skeleton_Archer.png";
             break;
         }
         case Armoured_Skeleton: {
-            health = 64; damage = 4; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
+            health = 64; damage = 4; walkSpeed = 8.0f; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 15;
             pixmapPath = ":/resources/images/Armored_Skeleton.png";
             break;
         }
         case Wizard: {
-            health = 80; damage = 3; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
+            health = 80; damage = 3; walkSpeed = 10.0f; attackSpeed = 1; attackRange = 5;
             bitcoinReward = 20;
             pixmapPath = ":/resources/images/Wizard.png";
             break;
         }
         case Orc: {
-            health = 56; damage = 20; walkSpeed = 0.8; attackSpeed = 1.2; attackRange = 1;
+            health = 56; damage = 20; walkSpeed = 8.0f; attackSpeed = 1.2; attackRange = 1;
             bitcoinReward = 12;
             pixmapPath = ":/resources/images/Orc.png";
             break;
         }
         case Armoured_Orc: {
-            health = 128; damage = 20; walkSpeed = 0.8; attackSpeed = 1; attackRange = 1;
+            health = 128; damage = 20; walkSpeed = 8.0f; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 25;
             pixmapPath = ":/resources/images/Armored_Orc.png";
             break;
         }
         case Elite_Orc: {
-            health = 480; damage = 20; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
+            health = 480; damage = 20; walkSpeed = 10.0f; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 50;
             pixmapPath = ":/resources/images/Elite_Orc.png";
             break;
         }
         case Orcastor: {
-            health = 48; damage = 10; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
+            health = 48; damage = 10; walkSpeed = 12.0f; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 10;
             pixmapPath = ":/resources/images/Orc_Rider.png";
             break;
         }
         case Knight: {
-            health = 240; damage = 15; walkSpeed = 0.8; attackSpeed = 0.8; attackRange = 1;
+            health = 240; damage = 15; walkSpeed = 8.0f; attackSpeed = 0.8; attackRange = 1;
             bitcoinReward = 30;
             pixmapPath = ":/resources/images/Knight.png";
             break;
         }
         case Knight_Templar: {
-            health = 960; damage = 25; walkSpeed = 0.8; attackSpeed = 0.8; attackRange = 1;
+            health = 960; damage = 25; walkSpeed = 8.0f; attackSpeed = 0.8; attackRange = 1;
             bitcoinReward = 75;
             pixmapPath = ":/resources/images/Knight_Templar.png";
             break;
         }
         case Werebear: {
-            health = 280; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
+            health = 280; damage = 20; walkSpeed = 12.0f; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 35;
             pixmapPath = ":/resources/images/Werebear.png";
             break;
         }
         case Cleric: {
-            health = 560; damage = 20; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
+            health = 560; damage = 20; walkSpeed = 10.0f; attackSpeed = 1; attackRange = 5;
             bitcoinReward = 40;
             pixmapPath = ":/resources/images/Cleric.png";
             break;
@@ -101,6 +101,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position, GameMapDialog* mapDialog)
 
     attackCooldown = 1.0f;
     lastAttackTime = QTime::currentTime();
+    lastUpdateTime = QTime::currentTime();
     frameWidth = 16;
     frameHeight = 16;
     stateFrameCounts[Idle] = 6;
@@ -111,24 +112,28 @@ Enemy::Enemy(EnemyType type, const QPointF& position, GameMapDialog* mapDialog)
     currentFrame = 0;
     animationTimer = 0;
     frameDuration = 0.1f;
-    target = QPointF(464, 472);
+    target = QPointF(448, 448);
+    currentWaypointIndex = 0;
+    qDebug() << "Enemy type" << type << "created at" << pos() << "with target" << target;
 }
 
 Enemy::Enemy()
-    : type(Skeleton), health(16), damage(1), walkSpeed(0.8), attackSpeed(1), attackRange(1),
+    : type(Skeleton), health(16), damage(1), walkSpeed(8.0f), attackSpeed(1), attackRange(1),
       bitcoinReward(5), state(Idle), currentFrame(0), animationTimer(0), frameDuration(0.1f),
-      mapDialog(nullptr)
+      mapDialog(nullptr), currentWaypointIndex(0)
 {
     setPixmap(QPixmap(":/resources/images/Skeleton.png"));
     attackCooldown = 1.0f;
     lastAttackTime = QTime::currentTime();
+    lastUpdateTime = QTime::currentTime();
     frameWidth = 16;
     frameHeight = 16;
     stateFrameCounts[Idle] = 6;
     stateFrameCounts[Moving] = 6;
     stateFrameCounts[Attacking] = 6;
     stateFrameCounts[Dying] = 6;
-    target = QPointF(464, 472);
+    target = QPointF(448, 448);
+    qDebug() << "Default Enemy created at" << pos() << "with target" << target;
 }
 
 Enemy::~Enemy()
@@ -230,24 +235,61 @@ void Enemy::update()
         return;
     }
 
-    // Get next step from findPath
-    QVector<QPointF> nextStep = mapDialog->findPath(pos(), target);
-    if (nextStep.isEmpty()) {
-        qDebug() << "Enemy at" << pos() << "type" << type << "no valid next step to" << target;
-        setState(Idle);
-        return;
+    // Calculate delta time
+    float deltaTime = lastUpdateTime.msecsTo(QTime::currentTime()) / 1000.0f;
+    lastUpdateTime = QTime::currentTime();
+
+    // Get path if none exists or we've reached the end
+    if (path.isEmpty() || currentWaypointIndex >= path.size()) {
+        path = mapDialog->findPath(pos(), target);
+        currentWaypointIndex = 0;
+        if (path.isEmpty()) {
+            qDebug() << "Enemy at" << pos() << "type" << type << "no valid path to" << target;
+            setState(Idle);
+            return;
+        }
+        qDebug() << "Enemy at" << pos() << "type" << type << "received new path with" << path.size() << "waypoints:" << path;
     }
 
-    QPointF nextPoint = nextStep[0];
-    if (nextPoint == pos()) {
-        qDebug() << "Enemy at" << pos() << "type" << type << "staying put";
-        setState(Idle);
+    // Move toward the current waypoint
+    if (currentWaypointIndex < path.size()) {
+        QPointF nextPoint = path[currentWaypointIndex];
+        QPointF currentPos = pos();
+        qreal dx = nextPoint.x() - currentPos.x();
+        qreal dy = nextPoint.y() - currentPos.y();
+        qreal distance = std::sqrt(dx * dx + dy * dy);
+
+        // Check if close enough to the waypoint
+        if (distance < 8.0f) {
+            currentWaypointIndex++;
+            if (currentWaypointIndex >= path.size()) {
+                setState(Idle);
+                qDebug() << "Enemy at" << pos() << "type" << type << "reached target" << target;
+                return;
+            }
+            nextPoint = path[currentWaypointIndex];
+            dx = nextPoint.x() - currentPos.x();
+            dy = nextPoint.y() - currentPos.y();
+            distance = std::sqrt(dx * dx + dy * dy);
+            qDebug() << "Enemy at" << pos() << "type" << type << "advanced to waypoint" << currentWaypointIndex << ":" << nextPoint;
+        }
+
+        // Move toward the next waypoint
+        if (distance > 0) {
+            qreal speed = walkSpeed * deltaTime;
+            qreal moveDistance = qMin(speed, distance);
+            qreal ratio = moveDistance / distance;
+            qreal moveX = dx * ratio;
+            qreal moveY = dy * ratio;
+            setPos(currentPos.x() + moveX, currentPos.y() + moveY);
+            setState(Moving);
+        } else {
+            setState(Idle);
+        }
     } else {
-        // Move to next tile's center
-        setPos(nextPoint);
-        setState(Moving);
+        setState(Idle);
     }
 
     UpdateAnimation();
-    qDebug() << "Enemy type" << type << "at" << pos() << "zValue" << zValue() << "moved to" << nextPoint;
+    qDebug() << "Enemy type" << type << "at" << pos() << "zValue" << zValue() << "moving to waypoint" << currentWaypointIndex << "/" << path.size() << "target" << target;
 }
