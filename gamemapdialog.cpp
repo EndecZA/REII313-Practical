@@ -9,7 +9,8 @@
 #include <QPair>
 #include <vector>
 #include <cmath>
-#include <QSound> // Added for QSound
+#include <queue> // Added for std::priority_queue
+#include <QSound>
 
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
@@ -40,12 +41,11 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 
     bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
     bitcoinText->setFont(QFont("Arial", 10));
-
     bitcoinText->setDefaultTextColor(Qt::white);
 
-//    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
-//    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
-//    bitcoinBackground->setPen(Qt::NoPen);
+    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
+    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
+    bitcoinBackground->setPen(Qt::NoPen);
 
     QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
     if (bitcoinPixmap.isNull()) {
@@ -56,16 +56,31 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
 
     bitcoinGroup = new QGraphicsItemGroup();
-    //bitcoinGroup->addToGroup(bitcoinBackground);
+    bitcoinGroup->addToGroup(bitcoinBackground);
     bitcoinGroup->addToGroup(bitcoinIcon);
     bitcoinGroup->addToGroup(bitcoinText);
     bitcoinGroup->setZValue(11);
     gameScene->addItem(bitcoinGroup);
 
-//    bitcoinBackground->setPos(5, 5);
+    bitcoinBackground->setPos(5, 5);
     bitcoinIcon->setPos(10 + 5, 8);
     bitcoinText->setPos(10 + 32 + 8, 10);
 
+    // Initialize background music with QSound
+    backgroundSound = new QSound(":/resources/audio/audio.wav", this);
+    backgroundSound->setLoops(-1); // Infinite looping
+    backgroundSound->play();
+
+    // Debug resource availability
+    QFile file(":/resources/audio/audio.wav");
+    if (!file.exists()) {
+        qDebug() << "Audio file not found in resources!";
+    } else {
+        qDebug() << "Audio file found in resources.";
+    }
+
+
+//    srand(time(0));
     tileset = new QPixmap(":/resources/images/tileset.png");
     drawMap();
 
@@ -87,26 +102,14 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
+//    updateTimer->start(16);
     updateTimer->start(125); // TEMP TEST: Animate on 3s => 8 frames per second.
-
-    // Initialize background music with QSound
-    backgroundSound = new QSound(":/resources/audio/audio.wav", this);
-    backgroundSound->setLoops(-1); // Infinite looping
-    backgroundSound->play();
-
-    // Debug resource availability
-    QFile file(":/resources/audio/audio.wav");
-    if (!file.exists()) {
-        qDebug() << "Audio file not found in resources!";
-    } else {
-        qDebug() << "Audio file found in resources.";
-    }
 
     // TEMP TEST:
     tower = new Tower(archer, this);
     int row = 8;
     int col = 4;
-    tower->setPos(32*col-8, row*16);
+    tower->setPos(32*col-8,row*16);
     gameScene->addItem(tower);
 }
 
@@ -153,7 +156,7 @@ void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
 QVector<QPointF> GameMapDialog::getSpawnPoints()
 {
     QVector<QPointF> spawnPoints;
-    spawnPoints << QPointF(65, 80) << QPointF(310, 115);
+    spawnPoints << QPointF(80, 35) << QPointF(320, 95);
     for (const QPointF& point : spawnPoints) {
         int gridX = static_cast<int>(point.x() / tileSize);
         int gridY = static_cast<int>(point.y() / (tileSize / 2));
@@ -223,7 +226,7 @@ void GameMapDialog::updateBitcoinDisplay()
     bitcoinText->setPlainText(QString("Bitcoins: %1").arg(bitcoinCount));
     qreal bgWidth = bitcoinText->boundingRect().width() + 32 + 12;
     qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8;
-    //bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
+    bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
 }
 
 void GameMapDialog::setDifficulty(int dif)
@@ -437,8 +440,8 @@ QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& ta
     // Snap position to grid center
     int startX = static_cast<int>(std::round(start.x() / tileSize));
     int startY = static_cast<int>(std::round(start.y() / (tileSize / 2)));
-    int targetX = static_cast<int>(target.x() / tileSize);
-    int targetY = static_cast<int>(target.y() / (tileSize / 2));
+    int targetX = static_cast<int>(std::round(target.x() / tileSize));
+    int targetY = static_cast<int>(std::round(target.y() / (tileSize / 2)));
 
     // Validate bounds
     if (startX < 0 || startX >= 2 * mapWidth || startY < 0 || startY >= 2 * mapHeight ||
@@ -478,6 +481,84 @@ QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& ta
         }
     }
 
+    // Dijkstra's algorithm
+    struct Node {
+        int x, y;
+        qreal dist;
+        bool operator<(const Node& other) const { return dist > other.dist; } // Min-heap
+    };
+
+    std::priority_queue<Node> pq;
+    QMap<QPair<int, int>, qreal> dist;
+    QMap<QPair<int, int>, QPair<int, int>> prev;
+    QSet<QPair<int, int>> visited;
+
+    pq.push({startX, startY, 0});
+    dist[{startX, startY}] = 0;
+
+    QVector<QPair<int, int>> directions = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+
+    while (!pq.empty()) {
+        Node current = pq.top();
+        pq.pop();
+        int x = current.x;
+        int y = current.y;
+
+        if (visited.contains({x, y})) continue;
+        visited.insert({x, y});
+
+        if (x == targetX && y == targetY) break;
+
+        for (const auto& dir : directions) {
+            int newX = x + dir.first;
+            int newY = y + dir.second;
+
+            // Check bounds
+            if (newX < 0 || newX >= 2 * mapWidth || newY < 0 || newY >= 2 * mapHeight) continue;
+
+            // Check walkability (avoid brickVariant tile 5)
+            int barrierY = 2 * mapHeight - newY - 1;
+            if (barrierGrid[barrierY][newX] != 0 || mapGrid[newY][newX] != 1) continue;
+
+            qreal newDist = dist[{x, y}] + 1; // Uniform cost
+
+            if (!dist.contains({newX, newY}) || newDist < dist[{newX, newY}]) {
+                dist[{newX, newY}] = newDist;
+                prev[{newX, newY}] = {x, y};
+                pq.push({newX, newY, newDist});
+            }
+        }
+    }
+
+    // Reconstruct path
+    QVector<QPointF> path;
+    QPair<int, int> current = {targetX, targetY};
+    if (!dist.contains(current)) {
+        qDebug() << "No path found from" << adjustedStart << "to" << target;
+        return QVector<QPointF>{adjustedStart};
+    }
+
+    while (current.first != startX || current.second != startY) {
+        qreal pixelX = current.first * tileSize + tileSize / 2;
+        qreal pixelY = current.second * (tileSize / 2) + tileSize / 4;
+        path.prepend(QPointF(pixelX, pixelY));
+        if (!prev.contains(current)) break;
+        current = prev[current];
+    }
+    path.prepend(adjustedStart);
+
+    // Draw debug lines for full path
+    for (int i = 1; i < path.size(); ++i) {
+        QGraphicsLineItem *line = gameScene->addLine(path[i-1].x(), path[i-1].y(),
+                                                     path[i].x(), path[i].y(), QPen(Qt::green, 2));
+        line->setZValue(8);
+    }
+
+    qDebug() << "Path found from" << adjustedStart << "to" << target << "with" << path.size() << "steps";
+    return path.size() > 1 ? QVector<QPointF>{path[1]} : path; // Return next step or current pos
+
+    /*
+    // Original greedy pathfinding (preserved)
     // Track visited tiles to prevent loops
     static QSet<QPair<int, int>> visited;
     if (visited.size() > 100) visited.clear(); // Reset if too large
@@ -537,4 +618,5 @@ QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& ta
 
     qDebug() << "Next step from" << adjustedStart << "to" << nextPoint << "distance" << minDistance;
     return QVector<QPointF>{nextPoint};
+    */
 }
