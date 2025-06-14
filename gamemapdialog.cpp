@@ -9,6 +9,7 @@
 #include <QPair>
 #include <vector>
 #include <cmath>
+#include <QSound> // Added for QSound
 
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
@@ -64,7 +65,6 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     bitcoinIcon->setPos(10 + 5, 8);
     bitcoinText->setPos(10 + 32 + 8, 10);
 
-//    srand(time(0));
     tileset = new QPixmap(":/resources/images/tileset.png");
     drawMap();
 
@@ -86,14 +86,26 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
-//    updateTimer->start(16);
     updateTimer->start(125); // TEMP TEST: Animate on 3s => 8 frames per second.
+
+    // Initialize background music with QSound
+    backgroundSound = new QSound(":/resources/audio/audio.wav", this);
+    backgroundSound->setLoops(-1); // Infinite looping
+    backgroundSound->play();
+
+    // Debug resource availability
+    QFile file(":/resources/audio/audio.wav");
+    if (!file.exists()) {
+        qDebug() << "Audio file not found in resources!";
+    } else {
+        qDebug() << "Audio file found in resources.";
+    }
 
     // TEMP TEST:
     tower = new Tower(archer, this);
     int row = 8;
     int col = 4;
-    tower->setPos(32*col-8,row*16);
+    tower->setPos(32*col-8, row*16);
     gameScene->addItem(tower);
 }
 

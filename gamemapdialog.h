@@ -17,6 +17,7 @@
 #include <QPair>
 #include <QQueue>
 #include <QMap>
+#include <QSound> // Added for QSound
 #include "enemy.h"
 #include "tower.h"
 
@@ -70,6 +71,7 @@ private:
     QGraphicsPixmapItem *bitcoinIcon;
     QGraphicsItemGroup *bitcoinGroup;
     Tower *tower;
+    QSound *backgroundSound;
 
     void spawnEnemy(EnemyType type, const QPointF& pos);
     QVector<QPointF> getSpawnPoints();
