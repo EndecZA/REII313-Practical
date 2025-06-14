@@ -40,11 +40,12 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 
     bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
     bitcoinText->setFont(QFont("Arial", 10));
+
     bitcoinText->setDefaultTextColor(Qt::white);
 
-    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
-    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
-    bitcoinBackground->setPen(Qt::NoPen);
+//    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
+//    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
+//    bitcoinBackground->setPen(Qt::NoPen);
 
     QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
     if (bitcoinPixmap.isNull()) {
@@ -55,13 +56,13 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
 
     bitcoinGroup = new QGraphicsItemGroup();
-    bitcoinGroup->addToGroup(bitcoinBackground);
+    //bitcoinGroup->addToGroup(bitcoinBackground);
     bitcoinGroup->addToGroup(bitcoinIcon);
     bitcoinGroup->addToGroup(bitcoinText);
     bitcoinGroup->setZValue(11);
     gameScene->addItem(bitcoinGroup);
 
-    bitcoinBackground->setPos(5, 5);
+//    bitcoinBackground->setPos(5, 5);
     bitcoinIcon->setPos(10 + 5, 8);
     bitcoinText->setPos(10 + 32 + 8, 10);
 
@@ -152,7 +153,7 @@ void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
 QVector<QPointF> GameMapDialog::getSpawnPoints()
 {
     QVector<QPointF> spawnPoints;
-    spawnPoints << QPointF(80, 35) << QPointF(320, 95);
+    spawnPoints << QPointF(65, 80) << QPointF(310, 115);
     for (const QPointF& point : spawnPoints) {
         int gridX = static_cast<int>(point.x() / tileSize);
         int gridY = static_cast<int>(point.y() / (tileSize / 2));
@@ -222,7 +223,7 @@ void GameMapDialog::updateBitcoinDisplay()
     bitcoinText->setPlainText(QString("Bitcoins: %1").arg(bitcoinCount));
     qreal bgWidth = bitcoinText->boundingRect().width() + 32 + 12;
     qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8;
-    bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
+    //bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
 }
 
 void GameMapDialog::setDifficulty(int dif)
