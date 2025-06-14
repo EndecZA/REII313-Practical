@@ -17,6 +17,7 @@ SOURCES += \
     multiplayeroptionsdialog.cpp \
     newgamesettingsdialog.cpp \
     singleplayeroptionsdialog.cpp \
+    tile.cpp \
     tower.cpp
 
 HEADERS += \
@@ -26,6 +27,7 @@ HEADERS += \
     multiplayeroptionsdialog.h \
     newgamesettingsdialog.h \
     singleplayeroptionsdialog.h \
+    tile.h \
     tower.h
 
 # Default rules for deployment.

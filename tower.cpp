@@ -1,9 +1,9 @@
 #include "tower.h"
 
-Tower::Tower(towerType t, QObject *parent) : QObject(parent), QGraphicsPixmapItem()
+Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 {
     setScale(0.5); // Halve the size of each tower on the scene (from 70x130px to 35x65px).
-    setOffset(-towerW/2, -towerH); // Make the bottom of the tower the datum.
+    setOffset(-1, -towerH+24); // Adjust the datum for the tower.
     type = t;
     QString path = "";
 

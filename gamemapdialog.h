@@ -18,6 +18,7 @@
 #include <QQueue>
 #include <QMap>
 #include <QSound> // Added for QSound
+#include "tile.h"
 #include "enemy.h"
 #include "tower.h"
 
@@ -50,8 +51,14 @@ public:
     static const int tileSize = 32;
     static const int mapWidth = 15;
     static const int mapHeight = 30;
+
+    // NOTE: mapGrid & barrierGridd will be removed here and only declared in drawMap().
     int mapGrid[2*mapHeight][2*mapWidth];
     int barrierGrid[2*mapHeight][2*mapWidth];
+
+    //  NB!! New grid to use for ALL pathfinding & containment etc...
+    Tile *tileGrid[2*mapHeight][2*mapWidth];
+
 
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
