@@ -10,6 +10,8 @@
 #include <vector>
 #include <cmath>
 #include <QSound>
+#include <queue>
+
 
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
@@ -135,7 +137,7 @@ void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
             enemy->setDamage(enemy->getDamage() * 1.2);
             break;
     }
-    enemy->setZValue(1);
+    enemy->setZValue(0);
     enemies.append(enemy);
     gameScene->addItem(enemy);
     qDebug() << "Spawned enemy type" << type << "at" << pos;
@@ -148,7 +150,7 @@ void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
 QVector<QPointF> GameMapDialog::getSpawnPoints()
 {
     QVector<QPointF> spawnPoints;
-    spawnPoints << QPointF(80, 35) << QPointF(320, 95);
+    spawnPoints << QPointF(80, 65) << QPointF(320, 115);
     for (const QPointF& point : spawnPoints) {
         int gridX = static_cast<int>(point.x() / tileSize);
         int gridY = static_cast<int>(point.y() / (tileSize / 2));
@@ -160,6 +162,7 @@ QVector<QPointF> GameMapDialog::getSpawnPoints()
     }
     return spawnPoints;
 }
+
 
 void GameMapDialog::startNextWave()
 {
@@ -427,110 +430,102 @@ void GameMapDialog::drawMap()
 }
 
 
-//FIND PATH IS A WORK IN PROGRESS
 QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& target)
 {
-    // Snap position to grid center
     int startX = static_cast<int>(std::round(start.x() / tileSize));
     int startY = static_cast<int>(std::round(start.y() / (tileSize / 2)));
     int targetX = static_cast<int>(target.x() / tileSize);
     int targetY = static_cast<int>(target.y() / (tileSize / 2));
 
-    // Validate bounds
-    if (startX < 0 || startX >= 2 * mapWidth || startY < 0 || startY >= 2 * mapHeight ||
-        targetX < 0 || targetX >= 2 * mapWidth || targetY < 0 || targetY >= 2 * mapHeight) {
-        qDebug() << "Pathfinding failed: Start" << start << "(grid:" << startX << "," << startY << ") or target" << target << "(grid:" << targetX << "," << targetY << ") out of bounds";
-        return QVector<QPointF>();
-    }
+    startX = qBound(0, startX, 2 * mapWidth - 1);
+    startY = qBound(0, startY, 2 * mapHeight - 1);
+    targetX = qBound(0, targetX, 2 * mapWidth - 1);
+    targetY = qBound(0, targetY, 2 * mapHeight - 1);
 
-    // Adjust start to nearest grass tile if not walkable
-    QPointF adjustedStart = QPointF(startX * tileSize + tileSize / 2, startY * (tileSize / 2) + tileSize / 4);
-    if (mapGrid[startY][startX] != 1 || barrierGrid[2 * mapHeight - startY - 1][startX] != 0) {
-        qDebug() << "Start" << start << "not walkable (mapGrid:" << mapGrid[startY][startX]
-                 << ", barrierGrid:" << barrierGrid[2 * mapHeight - startY - 1][startX] << ")";
+    QVector<QVector<int>> distances(2 * mapHeight, QVector<int>(2 * mapWidth, std::numeric_limits<int>::max()));
+    QVector<QVector<QPoint>> previous(2 * mapHeight, QVector<QPoint>(2 * mapWidth, QPoint(-1, -1)));
+    QVector<QPoint> unvisited;
+
+    for (int y = 0; y < 2 * mapHeight; ++y)
+        for (int x = 0; x < 2 * mapWidth; ++x)
+            unvisited.append(QPoint(x, y));
+
+    distances[startY][startX] = 0;
+
+    while (!unvisited.isEmpty()) {
         int minDist = std::numeric_limits<int>::max();
-        int nearestX = startX;
-        int nearestY = startY;
-        for (int y = 0; y < 2 * mapHeight; ++y) {
-            for (int x = 0; x < 2 * mapWidth; ++x) {
-                if (mapGrid[y][x] == 1 && barrierGrid[2 * mapHeight - y - 1][x] == 0) {
-                    int dist = abs(x - startX) + abs(y - startY);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        nearestX = x;
-                        nearestY = y;
-                    }
-                }
+        int minIndex = -1;
+        for (int i = 0; i < unvisited.size(); ++i) {
+            QPoint node = unvisited[i];
+            int dist = distances[node.y()][node.x()];
+            if (dist < minDist) {
+                minDist = dist;
+                minIndex = i;
             }
         }
-        if (minDist != std::numeric_limits<int>::max()) {
-            startX = nearestX;
-            startY = nearestY;
-            adjustedStart = QPointF(startX * tileSize + tileSize / 2, startY * (tileSize / 2) + tileSize / 4);
-            qDebug() << "Adjusted start to" << adjustedStart << "grid (" << startX << "," << startY << ")";
-        } else {
-            qDebug() << "No walkable tiles near" << start;
-            return QVector<QPointF>();
+        if (minIndex == -1)
+            break;
+
+        QPoint current = unvisited[minIndex];
+        unvisited.remove(minIndex);
+
+        int currX = current.x();
+        int currY = current.y();
+
+        if (currX == targetX && currY == targetY)
+            break;
+
+        QVector<QPoint> neighbors = {QPoint(currX, currY - 1), QPoint(currX, currY + 1), QPoint(currX - 1, currY), QPoint(currX + 1, currY)};
+        for (const QPoint& neighbor : neighbors) {
+            int nx = neighbor.x();
+            int ny = neighbor.y();
+            if (nx < 0 || nx >= 2 * mapWidth || ny < 0 || ny >= 2 * mapHeight)
+                continue;
+
+            int barrierY = 2 * mapHeight - ny - 1;
+            if (barrierGrid[barrierY][nx] != 0)
+                continue;
+
+            if (!unvisited.contains(neighbor))
+                continue;
+
+            int altDist = distances[currY][currX] + 1;
+            if (altDist < distances[ny][nx]) {
+                distances[ny][nx] = altDist;
+                previous[ny][nx] = current;
+            }
         }
     }
 
-    // Track visited tiles to prevent loops
-    static QSet<QPair<int, int>> visited;
-    if (visited.size() > 100) visited.clear(); // Reset if too large
-    visited.insert({startX, startY});
+    QVector<QPointF> path;
+    QPoint step(targetX, targetY);
 
-    // Check adjacent tiles
-    QVector<QPair<int, int>> directions = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
-    qreal minDistance = std::numeric_limits<qreal>::max();
-    QPair<int, int> bestTile = {startX, startY}; // Stay put if no valid move
-
-    for (const auto& dir : directions) {
-        int newX = startX + dir.first;
-        int newY = startY + dir.second;
-
-        // Check bounds
-        if (newX < 0 || newX >= 2 * mapWidth || newY < 0 || newY >= 2 * mapHeight) continue;
-
-        // Check walkability
-        int barrierY = 2 * mapHeight - newY - 1;
-        if (barrierGrid[barrierY][newX] != 0 || mapGrid[newY][newX] != 1) continue;
-
-        // Skip recently visited tiles to prevent loops
-        if (visited.contains({newX, newY})) continue;
-
-        // Calculate Euclidean distance to target
-        qreal pixelX = newX * tileSize + tileSize / 2;
-        qreal pixelY = newY * (tileSize / 2) + tileSize / 4;
-        qreal dx = pixelX - target.x();
-        qreal dy = pixelY - target.y();
-        qreal distance = std::sqrt(dx * dx + dy * dy);
-
-        qDebug() << "Checking tile (" << newX << "," << newY << ") at" << QPointF(pixelX, pixelY)
-                 << "distance to target" << distance;
-
-        if (distance < minDistance) {
-            minDistance = distance;
-            bestTile = {newX, newY};
-        }
+    if (distances[targetY][targetX] == std::numeric_limits<int>::max()) {
+        return path;
     }
 
-    // If no better tile, stay put
-    if (bestTile.first == startX && bestTile.second == startY) {
-        qDebug() << "No valid adjacent tile closer to target from" << adjustedStart;
-        visited.clear(); // Reset visited to allow retry
-        return QVector<QPointF>{adjustedStart};
+    QRectF sceneRect = gameScene->sceneRect();
+    const qreal maxX = 450.0;
+
+    while (step.x() != -1 && step.y() != -1 && !(step.x() == startX && step.y() == startY)) {
+        qreal px = step.x() * tileSize + tileSize / 2;
+        qreal py = step.y() * (tileSize / 2) + tileSize / 4;
+        px = qBound(sceneRect.left(), px, qMin(sceneRect.right(), maxX));
+        py = qBound(sceneRect.top(), py, sceneRect.bottom());
+        path.prepend(QPointF(px, py));
+        step = previous[step.y()][step.x()];
     }
 
-    // Convert best tile to pixel coordinates
-    qreal pixelX = bestTile.first * tileSize + tileSize / 2;
-    qreal pixelY = bestTile.second * (tileSize / 2) + tileSize / 4;
-    QPointF nextPoint(pixelX, pixelY);
+    qreal startPx = startX * tileSize + tileSize / 2;
+    qreal startPy = startY * (tileSize / 2) + tileSize / 4;
+    startPx = qBound(sceneRect.left(), startPx, qMin(sceneRect.right(), maxX));
+    startPy = qBound(sceneRect.top(), startPy, sceneRect.bottom());
+    path.prepend(QPointF(startPx, startPy));
 
-    // Draw debug line
-    QGraphicsLineItem *line = gameScene->addLine(adjustedStart.x(), adjustedStart.y(),
-                                                 nextPoint.x(), nextPoint.y(), QPen(Qt::green, 2));
-    line->setZValue(8);
+    for (int i = 0; i < path.size() - 1; ++i) {
+        QGraphicsLineItem* line = gameScene->addLine(path[i].x(), path[i].y(), path[i + 1].x(), path[i + 1].y(), QPen(Qt::green, 2));
+        line->setZValue(8);
+    }
 
-    qDebug() << "Next step from" << adjustedStart << "to" << nextPoint << "distance" << minDistance;
-    return QVector<QPointF>{nextPoint};
+    return path;
 }

@@ -112,7 +112,7 @@ Enemy::Enemy(EnemyType type, const QPointF& position, GameMapDialog* mapDialog)
     currentFrame = 0;
     animationTimer = 0;
     frameDuration = 0.1f;
-    target = QPointF(448, 448);
+    target = QPointF(250, 400);
     currentWaypointIndex = 0;
     qDebug() << "Enemy type" << type << "created at" << pos() << "with target" << target;
 }
@@ -132,7 +132,7 @@ Enemy::Enemy()
     stateFrameCounts[Moving] = 6;
     stateFrameCounts[Attacking] = 6;
     stateFrameCounts[Dying] = 6;
-    target = QPointF(448, 448);
+    target = QPointF(250, 400);
     qDebug() << "Default Enemy created at" << pos() << "with target" << target;
 }
 
@@ -235,23 +235,20 @@ void Enemy::update()
         return;
     }
 
-    // Calculate delta time
     float deltaTime = lastUpdateTime.msecsTo(QTime::currentTime()) / 1000.0f;
     lastUpdateTime = QTime::currentTime();
 
-    // Get path if none exists or we've reached the end
     if (path.isEmpty() || currentWaypointIndex >= path.size()) {
-        path = mapDialog->findPath(pos(), target);
+        path = mapDialog->findPath(pos(), QPointF(250, 400));
         currentWaypointIndex = 0;
         if (path.isEmpty()) {
-            qDebug() << "Enemy at" << pos() << "type" << type << "no valid path to" << target;
+            qDebug() << "Enemy at" << pos() << "type" << type << "no valid path to" << QPointF(250, 400);
             setState(Idle);
             return;
         }
         qDebug() << "Enemy at" << pos() << "type" << type << "received new path with" << path.size() << "waypoints:" << path;
     }
 
-    // Move toward the current waypoint
     if (currentWaypointIndex < path.size()) {
         QPointF nextPoint = path[currentWaypointIndex];
         QPointF currentPos = pos();
@@ -259,12 +256,32 @@ void Enemy::update()
         qreal dy = nextPoint.y() - currentPos.y();
         qreal distance = std::sqrt(dx * dx + dy * dy);
 
+        // Check if the next point is blocked by a barrier
+        int nextTileX = static_cast<int>(nextPoint.x() / mapDialog->tileSize);
+        int nextTileY = static_cast<int>(nextPoint.y() / (mapDialog->tileSize / 2));
+        bool isBlocked = false;
+
+        // Check if the next position collides with a barrier
+        if (nextTileX >= 0 && nextTileX < 2 * mapDialog->mapWidth && nextTileY >= 0 && nextTileY < 2 * mapDialog->mapHeight) {
+            int barrierY = 2 * mapDialog->mapHeight - nextTileY - 1;
+            if (mapDialog->barrierGrid[barrierY][nextTileX] != 0) {
+                isBlocked = true;
+            }
+        }
+
+        // If the next point is blocked, recalculate the path
+        if (isBlocked) {
+            path = mapDialog->findPath(pos(), QPointF(250, 400)); // Recalculate path
+            currentWaypointIndex = 0; // Reset to the first waypoint
+            return; // Exit the update to avoid moving into a barrier
+        }
+
         // Check if close enough to the waypoint
         if (distance < 8.0f) {
             currentWaypointIndex++;
             if (currentWaypointIndex >= path.size()) {
                 setState(Idle);
-                qDebug() << "Enemy at" << pos() << "type" << type << "reached target" << target;
+                qDebug() << "Enemy at" << pos() << "type" << type << "reached target" << QPointF(250, 400);
                 return;
             }
             nextPoint = path[currentWaypointIndex];
@@ -291,5 +308,5 @@ void Enemy::update()
     }
 
     UpdateAnimation();
-    qDebug() << "Enemy type" << type << "at" << pos() << "zValue" << zValue() << "moving to waypoint" << currentWaypointIndex << "/" << path.size() << "target" << target;
+    qDebug() << "Enemy type" << type << "at" << pos() << "zValue" << zValue() << "moving to waypoint" << currentWaypointIndex << "/" << path.size() << "target" << QPointF(250, 400);
 }

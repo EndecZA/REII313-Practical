@@ -44,8 +44,6 @@ public:
     void drawMap();
     void updateBitcoinDisplay();
     QVector<QPointF> findPath(const QPointF& start, const QPointF& target);
-
-private:
     enum difficulty gameDifficulty;
     enum map mapType;
     bool isMultiplayer;

@@ -18,6 +18,11 @@ public:
     Enemy();
     ~Enemy();
 
+    static const int tileSize = 32;
+    static const int mapWidth = 15;
+    static const int mapHeight = 30;
+    int barrierGrid[2*mapHeight][2*mapWidth];
+
     int getHealth();
     void setHealth(int health);
     int getDamage();
