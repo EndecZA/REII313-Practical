@@ -4,6 +4,7 @@
 #include <QGraphicsPixmapItem>
 #include <QPointF>
 #include <QTime>
+#include <QVector>
 
 class GameMapDialog;
 
@@ -56,6 +57,10 @@ private:
     float frameDuration;
     QMap<EnemyState, int> stateFrameCounts;
     GameMapDialog* mapDialog;
+
+    QTime lastUpdateTime;
+    QVector<QPointF> path;
+    int currentWaypointIndex;
 };
 
 #endif // ENEMY_H
