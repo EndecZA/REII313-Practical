@@ -18,6 +18,7 @@
 #include <QQueue>
 #include <QMap>
 #include "enemy.h"
+#include "tower.h"
 
 enum difficulty
 {
@@ -68,8 +69,8 @@ private:
     QGraphicsRectItem *bitcoinBackground;
     QGraphicsPixmapItem *bitcoinIcon;
     QGraphicsItemGroup *bitcoinGroup;
+    Tower *tower;
 
-    void genMap();
     void spawnEnemy(EnemyType type, const QPointF& pos);
     QVector<QPointF> getSpawnPoints();
     void startNextWave();

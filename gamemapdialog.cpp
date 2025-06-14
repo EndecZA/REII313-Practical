@@ -64,7 +64,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     bitcoinIcon->setPos(10 + 5, 8);
     bitcoinText->setPos(10 + 32 + 8, 10);
 
-    srand(time(0));
+//    srand(time(0));
     tileset = new QPixmap(":/resources/images/tileset.png");
     drawMap();
 
@@ -86,7 +86,15 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
-    updateTimer->start(16);
+//    updateTimer->start(16);
+    updateTimer->start(125); // TEMP TEST: Animate on 3s => 8 frames per second.
+
+    // TEMP TEST:
+    tower = new Tower(archer, this);
+    int row = 8;
+    int col = 4;
+    tower->setPos(32*col-8,row*16);
+    gameScene->addItem(tower);
 }
 
 void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
@@ -192,6 +200,9 @@ void GameMapDialog::updateGame()
     }
     updateBitcoinDisplay();
     gameScene->update();
+
+    // TEST:
+    tower->Tick();
 }
 
 void GameMapDialog::updateBitcoinDisplay()
@@ -406,11 +417,6 @@ void GameMapDialog::drawMap()
         }
     }
     qDebug() << "Added tiles and barriers to GraphicsView.";
-}
-
-void GameMapDialog::genMap()
-{
-    // Placeholder for random map generation
 }
 
 QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& target)

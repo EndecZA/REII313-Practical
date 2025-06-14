@@ -17,6 +17,8 @@ class Tower : public QObject, public QGraphicsPixmapItem
 public:
     explicit Tower(towerType, QObject *parent = nullptr);
     int getCost();
+    int Upgrade(int); // Input: Currency balance. Output: Balance after upgrade.
+    void Tick(); // Tick function for tower.
     void connectEnemy(Enemy*); // Function to connect/disconnect any enemy to the tower's attacking signal.
                                // Each connected enemy takes damage per attack.
 
@@ -24,15 +26,15 @@ private:
     QPixmap *pixmap;
     towerType type;
     towerState state;
+    static const int towerW = 70;
+    static const int towerH = 130;
+    int animationCounter; // Iterate over animation frames.
     int towerLevel;
     int damage;
     int fireRate; // Number of ticks that the tower waits before attacking next.
-    int counter; // Counter to keep track of the amount of received ticks.
+    int attackCounter; // Counter to keep track of the amount of received ticks.
     int range;
     int cost; // Cost of construction or upgrade.
-
-    int Upgrade(int); // Input: Currency balance. Output: Balance after upgrade.
-    void Tick(); // Tick function for tower.
 
 signals:
     void Attack(int); // Attack connected enemies.

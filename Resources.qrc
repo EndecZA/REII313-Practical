@@ -20,5 +20,6 @@
         <file>images/Wizard.png</file>
         <file>images/bitcoin.png</file>
         <file>audio/audio.mp3</file>
+        <file>images/towers/archer_tower.png</file>
     </qresource>
 </RCC>
