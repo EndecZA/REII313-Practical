@@ -39,6 +39,10 @@ class GameMapDialog : public QDialog
 public:
     explicit GameMapDialog(QWidget *parent = nullptr);
     ~GameMapDialog();
+
+    void clearGameState();
+    bool saveGameToFile(const QString& filename);
+    bool loadGameFromFile(const QString& filename);
     void setDifficulty(int);
     void setMap(int);
     void setMultiplayer(bool);

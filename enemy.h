@@ -41,6 +41,8 @@ public:
     void UpdateAnimation();
     void update();
 
+    void setPath(const QVector<QPointF>& newPath); // Added to allow external path setting
+
 private:
     EnemyType type;
     int health;

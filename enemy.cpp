@@ -310,3 +310,9 @@ void Enemy::update()
     UpdateAnimation();
     qDebug() << "Enemy type" << type << "at" << pos() << "zValue" << zValue() << "moving to waypoint" << currentWaypointIndex << "/" << path.size() << "target" << QPointF(250, 400);
 }
+
+void Enemy::setPath(const QVector<QPointF>& newPath) {
+    path = newPath;
+    currentWaypointIndex = 0; // Reset to the first waypoint
+    qDebug() << "Enemy path set with" << path.size() << "waypoints, starting at index 0";
+}

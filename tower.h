@@ -17,8 +17,6 @@ public:
     explicit Tower(towerType);
     int getCost();
     void Tick(); // Tick function for tower.
-
-private:
     QPixmap *pixmap;
     towerType type;
     towerState state;

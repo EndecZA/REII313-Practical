@@ -72,22 +72,27 @@ MainWindow::MainWindow(QWidget *parent)
     isMultiplayer = false;
 }
 
-void MainWindow::onSinglePlayerClicked()
-{
+void MainWindow::onSinglePlayerClicked() {
     isMultiplayer = false;
     SinglePlayerOptionsDialog dialog(this);
     if (dialog.exec() == QDialog::Accepted) {
-        gameSave = dialog.getSelectedSave(); // Is the game being saved.
-
-        // Launch the game by opening the the game window:
+        gameSave = dialog.getSelectedSave(); // 0 for new game, 1 for load game
         gameMap = new GameMapDialog(this);
-        gameMap->setDifficulty(dialog.getSelectedDifficulty());
-        gameMap->setMap(dialog.getSelectedMap());
+        if (gameSave == 1) {
+            if (!gameMap->loadGameFromFile("savegame.txt")) {
+                qDebug() << "Failed to load saved game.";
+            }
+        } else {
+            gameMap->setDifficulty(dialog.getSelectedDifficulty());
+            gameMap->setMap(dialog.getSelectedMap());
+        }
         gameMap->setMultiplayer(isMultiplayer);
         gameMap->drawMap();
         gameMap->exec();
     }
 }
+
+
 
 void MainWindow::onMultiPlayerClicked()
 {
