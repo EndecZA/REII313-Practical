@@ -16,6 +16,11 @@ MainWindow::MainWindow(QWidget *parent)
     // Load custom font (Press Start 2P)
     QFontDatabase().addApplicationFont(":/resources/fonts/PressStart2P-Regular.ttf");
 
+    // Initialize background music with QSound
+    backgroundSound = new QSound(":/resources/audio/audio.wav", this);
+    backgroundSound->setLoops(-1); // Infinite looping
+    backgroundSound->play();
+
     // Background QLabel
     Background = new QLabel(this);
     Background->setGeometry(0, 0, 800, 600);

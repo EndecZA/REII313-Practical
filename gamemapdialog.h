@@ -17,10 +17,12 @@
 #include <QPair>
 #include <QQueue>
 #include <QMap>
-#include <QSound> // Added for QSound
+#include <QSound>
+#include <QKeyEvent>
 #include "tile.h"
 #include "enemy.h"
 #include "tower.h"
+#include "pausemenudialog.h"
 
 enum difficulty
 {
@@ -60,6 +62,18 @@ public:
     Tile *tileGrid[2*mapHeight][2*mapWidth];
 
 
+protected:
+
+    void keyPressEvent(QKeyEvent *event) override;
+
+private slots:
+
+    void onResumeGame();
+    void onSaveGame();
+    void onExitGame();
+
+private:
+
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
     QPixmap *tileset;
@@ -76,12 +90,15 @@ public:
     QGraphicsPixmapItem *bitcoinIcon;
     QGraphicsItemGroup *bitcoinGroup;
     Tower *tower;
-    QSound *backgroundSound;
+    PauseMenuDialog *pauseMenu;
+
 
     void spawnEnemy(EnemyType type, const QPointF& pos);
     QVector<QPointF> getSpawnPoints();
     void startNextWave();
     void updateGame();
+    void pauseGame();
+    void resumeGame();
 };
 
 #endif // GAMEMAPDIALOG_H

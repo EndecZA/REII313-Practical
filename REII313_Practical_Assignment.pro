@@ -16,6 +16,7 @@ SOURCES += \
     mainwindow.cpp \
     multiplayeroptionsdialog.cpp \
     newgamesettingsdialog.cpp \
+    pausemenudialog.cpp \
     singleplayeroptionsdialog.cpp \
     tile.cpp \
     tower.cpp
@@ -26,6 +27,7 @@ HEADERS += \
     mainwindow.h \
     multiplayeroptionsdialog.h \
     newgamesettingsdialog.h \
+    pausemenudialog.h \
     singleplayeroptionsdialog.h \
     tile.h \
     tower.h

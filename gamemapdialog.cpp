@@ -17,98 +17,93 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
 {
     setModal(true);
-    showMaximized();
-    setFixedSize(1920,1080);
-    setWindowTitle("Game");
+        showMaximized();
+        setFixedSize(1920,1080);
+        setWindowTitle("Game");
 
-    gameScene = new QGraphicsScene(this);
-    gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight+32);
-    gameScene->setItemIndexMethod(QGraphicsScene::NoIndex);
-    gameScene->setBackgroundBrush(Qt::black);
+        gameScene = new QGraphicsScene(this);
+        gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight);
+        gameScene->setItemIndexMethod(QGraphicsScene::NoIndex);
+        gameScene->setBackgroundBrush(Qt::black);
 
-    gameView = new QGraphicsView(gameScene, this);
-    gameView->setFixedSize(1920, 1080);
-    gameView->setRenderHint(QPainter::Antialiasing);
-    gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    int scale = 1920/(tileSize*mapWidth);
-    gameView->scale(scale, scale);
-    gameView->centerOn(gameView->width()/2, 0);
-    gameView->show();
+        gameView = new QGraphicsView(gameScene, this);
+        gameView->setFixedSize(1920, 1080);
+        gameView->setRenderHint(QPainter::Antialiasing);
+        gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        int scale = 1920/(tileSize*mapWidth);
+        gameView->scale(scale, scale);
+        gameView->show();
 
-    gameDifficulty = medium;
-    mapType = map1;
-    isMultiplayer = false;
-    bitcoinCount = 0;
+        gameDifficulty = medium;
+        mapType = map1;
+        isMultiplayer = false;
+        bitcoinCount = 0;
 
-    bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
-    bitcoinText->setFont(QFont("Arial", 10));
-    bitcoinText->setDefaultTextColor(Qt::white);
+        bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
+        bitcoinText->setFont(QFont("Arial", 10));
+        bitcoinText->setDefaultTextColor(Qt::white);
 
-    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
-    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
-    bitcoinBackground->setPen(Qt::NoPen);
+        bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
+        bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
+        bitcoinBackground->setPen(Qt::NoPen);
 
-    QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
-    if (bitcoinPixmap.isNull()) {
-        qDebug() << "Failed to load bitcoin.png";
-        bitcoinPixmap = QPixmap(32, 32);
-        bitcoinPixmap.fill(Qt::yellow);
-    }
-    bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
+        QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
+        if (bitcoinPixmap.isNull()) {
+            qDebug() << "Failed to load bitcoin.png";
+            bitcoinPixmap = QPixmap(32, 32);
+            bitcoinPixmap.fill(Qt::yellow);
+        }
+        bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
 
-    bitcoinGroup = new QGraphicsItemGroup();
-    bitcoinGroup->addToGroup(bitcoinBackground);
-    bitcoinGroup->addToGroup(bitcoinIcon);
-    bitcoinGroup->addToGroup(bitcoinText);
-    bitcoinGroup->setZValue(11);
-    gameScene->addItem(bitcoinGroup);
+        bitcoinGroup = new QGraphicsItemGroup();
+        bitcoinGroup->addToGroup(bitcoinBackground);
+        bitcoinGroup->addToGroup(bitcoinIcon);
+        bitcoinGroup->addToGroup(bitcoinText);
+        bitcoinGroup->setZValue(11);
+        gameScene->addItem(bitcoinGroup);
 
-    bitcoinBackground->setPos(5, 5);
-    bitcoinIcon->setPos(10 + 5, 8);
-    bitcoinText->setPos(10 + 32 + 8, 10);
+        bitcoinBackground->setPos(5, 5);
+        bitcoinIcon->setPos(10 + 5, 8);
+        bitcoinText->setPos(10 + 32 + 8, 10);
 
-    tileset = new QPixmap(":/resources/images/tileset.png");
-    drawMap();
+        tileset = new QPixmap(":/resources/images/tileset.png");
+        drawMap();
 
-//    QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
-//    debugRect->setZValue(10);
+        QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
+        debugRect->setZValue(10);
 
-    QVector<QPointF> spawnPoints = getSpawnPoints();
-//    for (const QPointF& point : spawnPoints) {
-//        QGraphicsRectItem* spawnMarker = gameScene->addRect(point.x() - 16, point.y() - 16, 32, 32, QPen(Qt::yellow), QBrush(Qt::yellow));
-//        spawnMarker->setZValue(9);
-//    }
+        QVector<QPointF> spawnPoints = getSpawnPoints();
+        for (const QPointF& point : spawnPoints) {
+            QGraphicsRectItem* spawnMarker = gameScene->addRect(point.x() - 16, point.y() - 16, 32, 32, QPen(Qt::yellow), QBrush(Qt::yellow));
+            spawnMarker->setZValue(9);
+        }
 
-    currentWave = 0;
-    enemiesPerWave = 5;
-    enemiesToSpawn = 0;
-    waveTimer = new QTimer(this);
-    connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
-    waveTimer->start(10000);
+        currentWave = 0;
+        enemiesPerWave = 5;
+        enemiesToSpawn = 0;
+        waveTimer = new QTimer(this);
+        connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
+        waveTimer->start(10000);
 
-    updateTimer = new QTimer(this);
-    connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
-    updateTimer->start(125); // TEMP TEST: Animate on 3s => 8 frames per second.
+        updateTimer = new QTimer(this);
+        connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
+        updateTimer->start(125);
 
-    // Initialize background music with QSound
-    backgroundSound = new QSound(":/resources/audio/audio.wav", this);
-    backgroundSound->setLoops(-1); // Infinite looping
-    backgroundSound->play();
+        tower = new Tower(archer);
+        int row = 8;
+        int col = 4;
+        tower->setPos(32*col-8, row*16);
+        gameScene->addItem(tower);
 
-    // Debug resource availability
-    QFile file(":/resources/audio/audio.wav");
-    if (!file.exists()) {
-        qDebug() << "Audio file not found in resources!";
-    } else {
-        qDebug() << "Audio file found in resources.";
+        pauseMenu = nullptr;
     }
 
-    // TEMP TEST:
-    tower = new Tower(archer);
-    tileGrid[16][16]->addTower(tower);
-    gameScene->addItem(tower);
-
+void GameMapDialog::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Escape && !pauseMenu) {
+        pauseGame();
+    }
 }
 
 void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
@@ -467,4 +462,40 @@ QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& ta
     }
 
     return path;
+}
+
+void GameMapDialog::pauseGame()
+{
+    if (!pauseMenu) {
+        waveTimer->stop();
+        updateTimer->stop();
+        pauseMenu = new PauseMenuDialog(this);
+        connect(pauseMenu, &PauseMenuDialog::resumeGame, this, &GameMapDialog::onResumeGame);
+        connect(pauseMenu, &PauseMenuDialog::saveGame, this, &GameMapDialog::onSaveGame);
+        connect(pauseMenu, &PauseMenuDialog::exitGame, this, &GameMapDialog::onExitGame);
+        pauseMenu->exec();
+    }
+}
+
+void GameMapDialog::resumeGame()
+{
+    waveTimer->start();
+    updateTimer->start();
+    pauseMenu = nullptr;
+}
+
+void GameMapDialog::onResumeGame()
+{
+    resumeGame();
+}
+
+void GameMapDialog::onSaveGame()
+{
+    qDebug() << "Save game placeholder";
+    resumeGame();
+}
+
+void GameMapDialog::onExitGame()
+{
+    close();
 }
