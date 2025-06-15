@@ -5,6 +5,8 @@
 #include <QWidget>
 #include <QPixmap>
 #include <QVector>
+#include <QGraphicsSceneMouseEvent>
+#include <QMenu>
 
 #include "enemy.h"
 #include "tower.h"
@@ -18,6 +20,7 @@ public:
     int dist; // Distance from current tile to base. Updated during flood filling algorithm.
     Tile *next; // Next tile in shortest path to the base.
     int pos[2];
+
     void addTower(Tower*); // Add a tower to the tile.
     Tower* removeTower(); // Remove tower from tile.
     void addEnemy(Enemy*); // Add enemy to tile.
@@ -27,11 +30,14 @@ private:
     static const int tileSize = 32;
     static const int mapWidth = 15;
     static const int mapHeight = 30;
+    int row, col;
     bool isBarrier;
     bool hasTower;
     QGraphicsPixmapItem *barrier; // QGraphicsPixmapItem whose parent item is the Tile itself.
     Tower *tower; // Pointer to tower object contained in tile.
     QVector<Enemy*> enemies; // Vector for all enemies currently positioned at tile.
+
+    void mousePressEvent(QGraphicsSceneMouseEvent*); // Handle click events.
 
 
 public slots: // TO DO!!
@@ -40,6 +46,7 @@ public slots: // TO DO!!
 //    void Attack(int damage); // Attack enemies contained in tile.
 
 signals:
+    void buildTower(towerType, int row, int col); // Send signal to build tower on the map.
     void flood(); // If the tile is modified, reflood shortest path.
 
 };

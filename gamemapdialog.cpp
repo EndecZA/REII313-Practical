@@ -16,10 +16,10 @@
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setModal(true);
+        setModal(true);
         showMaximized();
         setFixedSize(1920,1080);
-        setWindowTitle("Game");
+        setWindowTitle("Dungeons & Towers");
 
         gameScene = new QGraphicsScene(this);
         gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight);
@@ -38,7 +38,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         gameDifficulty = medium;
         mapType = map1;
         isMultiplayer = false;
-        bitcoinCount = 0;
+        bitcoinCount = 0; // SUBJECT TO CHANGE!
 
         bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
         bitcoinText->setFont(QFont("Arial", 10));
@@ -90,14 +90,8 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
         updateTimer->start(125);
 
-        tower = new Tower(archer);
-        int row = 8;
-        int col = 4;
-        tower->setPos(32*col-8, row*16);
-        gameScene->addItem(tower);
-
         pauseMenu = nullptr;
-    }
+}
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)
 {
@@ -195,7 +189,7 @@ void GameMapDialog::startNextWave()
 void GameMapDialog::updateGame()
 {
     QVector<Enemy*> enemiesToRemove;
-    for (Enemy* enemy : enemies) {
+    for (Enemy* &enemy : enemies) {
         if (!enemy->isAlive()) {
             bitcoinCount += enemy->getBitcoinReward();
             enemiesToRemove.append(enemy);
@@ -204,15 +198,18 @@ void GameMapDialog::updateGame()
             enemy->update();
         }
     }
-    for (Enemy* enemy : enemiesToRemove) {
+    for (Enemy* &enemy : enemiesToRemove) {
         enemies.removeOne(enemy);
         delete enemy;
     }
     updateBitcoinDisplay();
     gameScene->update();
 
-    // TEST:
-    tower->Tick();
+    // Update state of all towers:
+    for (Tower* &tower : towers)
+    {
+        tower->Tick();
+    }
 }
 
 void GameMapDialog::updateBitcoinDisplay()
@@ -351,7 +348,8 @@ void GameMapDialog::drawMap()
             {
                 tileGrid[i][j] = new Tile(mapGrid[i][j], barrierGrid[i][j], i, j);
                 gameScene->addItem(tileGrid[i][j]);
-                tileGrid[i][j]->setZValue(-1);
+                connect(tileGrid[i][j], &Tile::buildTower, this, &GameMapDialog::buildTower); // Connect build tower signal to slot.
+//                tileGrid[i][j]->setZValue(-1);
             } 
             else
             {
@@ -361,6 +359,15 @@ void GameMapDialog::drawMap()
     }
     qDebug() << "Added tiles and barriers to GraphicsView.";
 
+}
+
+void GameMapDialog::buildTower(towerType type, int row, int col)
+{
+    Tower *tower = new Tower(type);
+    tileGrid[row][col]->addTower(tower);
+    gameScene->addItem(tower);
+
+    towers.append(tower);
 }
 
 
