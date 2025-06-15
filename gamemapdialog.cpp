@@ -33,42 +33,14 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         int scale = 1920/(tileSize*mapWidth);
         gameView->scale(scale, scale);
+        gameView->centerOn(1920/2, 0);
         gameView->show();
 
         gameDifficulty = medium;
         mapType = map1;
         isMultiplayer = false;
         bitcoinCount = 200; // SUBJECT TO CHANGE!
-
-        bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
-        bitcoinText->setFont(QFont("Arial", 10));
-        bitcoinText->setDefaultTextColor(Qt::white);
-
-        bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
-        bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
-        bitcoinBackground->setPen(Qt::NoPen);
-
-        QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
-        if (bitcoinPixmap.isNull()) {
-            qDebug() << "Failed to load bitcoin.png";
-            bitcoinPixmap = QPixmap(32, 32);
-            bitcoinPixmap.fill(Qt::yellow);
-        }
-        bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
-
-        bitcoinGroup = new QGraphicsItemGroup();
-        bitcoinGroup->addToGroup(bitcoinBackground);
-        bitcoinGroup->addToGroup(bitcoinIcon);
-        bitcoinGroup->addToGroup(bitcoinText);
-        bitcoinGroup->setZValue(bitcoinGroup->y() + bitcoinGroup->boundingRect().width());
-        gameScene->addItem(bitcoinGroup);
-
-        bitcoinBackground->setPos(5, 5);
-        bitcoinIcon->setPos(10 + 5, 8);
-        bitcoinText->setPos(10 + 32 + 8, 10);
-
         tileset = new QPixmap(":/resources/images/tileset.png");
-        drawMap();
 
 //        QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
 //        debugRect->setZValue(10);
@@ -91,133 +63,6 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         updateTimer->start(125);
 
         pauseMenu = nullptr;
-}
-
-void GameMapDialog::keyPressEvent(QKeyEvent *event)
-{
-    if (event->key() == Qt::Key_Escape && !pauseMenu) {
-        pauseGame();
-    }
-}
-
-void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
-{
-    // Force spawn point to be walkable
-    int gridX = static_cast<int>(pos.x() / tileSize);
-    int gridY = static_cast<int>(pos.y() / (tileSize / 2));
-    if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
-        mapGrid[gridY][gridX] = 1; // Grass tile
-        barrierGrid[2 * mapHeight - gridY - 1][gridX] = 0; // No barrier
-        qDebug() << "Forced spawn point" << pos << "to grass at grid (" << gridX << "," << gridY << ")";
-    } else {
-        qDebug() << "Error: Spawn point" << pos << "outside bounds";
-    }
-
-    Enemy* enemy = new Enemy(type, pos, this);
-    if (enemy->pixmap().isNull()) {
-        qDebug() << "Skipping spawn of type" << type << "due to null pixmap at" << pos;
-        delete enemy;
-        return;
-    }
-    switch (gameDifficulty) {
-        case easy:
-            enemy->setHealth(enemy->getHealth() * 0.8);
-            break;
-        case medium:
-            break;
-        case hard:
-            enemy->setHealth(enemy->getHealth() * 1.5);
-            enemy->setDamage(enemy->getDamage() * 1.2);
-            break;
-    }
-    enemy->setZValue(0);
-    enemies.append(enemy);
-    gameScene->addItem(enemy);
-    qDebug() << "Spawned enemy type" << type << "at" << pos;
-
-//    QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
-//    marker->setZValue(2);
-//    marker->setOpacity(0.5);
-}
-
-QVector<QPointF> GameMapDialog::getSpawnPoints()
-{
-    QVector<QPointF> spawnPoints;
-    spawnPoints << QPointF(80, 65) << QPointF(320, 115);
-    for (const QPointF& point : spawnPoints) {
-        int gridX = static_cast<int>(point.x() / tileSize);
-        int gridY = static_cast<int>(point.y() / (tileSize / 2));
-        if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
-            qDebug() << "Spawn point" << point << "grid (" << gridX << "," << gridY << ")";
-        } else {
-            qDebug() << "Error: Spawn point" << point << "outside bounds";
-        }
-    }
-    return spawnPoints;
-}
-
-
-void GameMapDialog::startNextWave()
-{
-    currentWave++;
-    enemiesToSpawn = enemiesPerWave + currentWave * 2;
-    qDebug() << "Starting wave" << currentWave << "with" << enemiesToSpawn << "enemies";
-
-    QTimer* spawnTimer = new QTimer(this);
-    int spawnInterval = 1000;
-    int enemiesSpawned = 0;
-
-    connect(spawnTimer, &QTimer::timeout, this, [=]() mutable {
-        if (enemiesSpawned < enemiesToSpawn) {
-            QVector<QPointF> spawnPoints = getSpawnPoints();
-            if (!spawnPoints.isEmpty()) {
-                QPointF spawnPos = spawnPoints[rand() % spawnPoints.size()];
-                EnemyType type = (currentWave < 3) ? Skeleton :
-                                 (currentWave < 6) ? Orc : Knight;
-                spawnEnemy(type, spawnPos);
-                enemiesSpawned++;
-            }
-        } else {
-            spawnTimer->stop();
-            spawnTimer->deleteLater();
-            qDebug() << "Wave" << currentWave << "completed";
-        }
-    });
-    spawnTimer->start(spawnInterval);
-}
-
-void GameMapDialog::updateGame()
-{
-    QVector<Enemy*> enemiesToRemove;
-    for (Enemy* &enemy : enemies) {
-        if (!enemy->isAlive()) {
-            bitcoinCount += enemy->getBitcoinReward();
-            enemiesToRemove.append(enemy);
-            gameScene->removeItem(enemy);
-        } else {
-            enemy->update();
-        }
-    }
-    for (Enemy* &enemy : enemiesToRemove) {
-        enemies.removeOne(enemy);
-        delete enemy;
-    }
-    updateBitcoinDisplay();
-    gameScene->update();
-
-    // Update state of all towers:
-    for (Tower* &tower : towers)
-    {
-        tower->Tick();
-    }
-}
-
-void GameMapDialog::updateBitcoinDisplay()
-{
-    bitcoinText->setPlainText(QString("Bitcoins: %1").arg(bitcoinCount));
-    qreal bgWidth = bitcoinText->boundingRect().width() + 32 + 12;
-    qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8;
-    bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
 }
 
 void GameMapDialog::setDifficulty(int dif)
@@ -353,7 +198,7 @@ void GameMapDialog::drawMap()
                 connect(tileGrid[i][j], &Tile::buildTower, this, &GameMapDialog::buildTower);
                 connect(tileGrid[i][j], &Tile::sellTower, this, &GameMapDialog::sellTower);
                 connect(tileGrid[i][j], &Tile::upgradeTower, this, &GameMapDialog::upgradeTower);
-            } 
+            }
             else
             {
                 tileGrid[i][j] = nullptr; // Corner indices are null pointers.
@@ -362,6 +207,68 @@ void GameMapDialog::drawMap()
     }
     qDebug() << "Added tiles and barriers to GraphicsView.";
 
+    // Add currency display:
+    bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
+    bitcoinText->setFont(QFont("Arial", 10));
+    bitcoinText->setDefaultTextColor(Qt::white);
+
+    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
+    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
+    bitcoinBackground->setPen(Qt::NoPen);
+
+    QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
+    if (bitcoinPixmap.isNull()) {
+        qDebug() << "Failed to load bitcoin.png";
+        bitcoinPixmap = QPixmap(32, 32);
+        bitcoinPixmap.fill(Qt::yellow);
+    }
+    bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
+
+    bitcoinGroup = new QGraphicsItemGroup();
+    bitcoinGroup->addToGroup(bitcoinBackground);
+    bitcoinGroup->addToGroup(bitcoinIcon);
+    bitcoinGroup->addToGroup(bitcoinText);
+    bitcoinGroup->setZValue(bitcoinGroup->y() + bitcoinGroup->boundingRect().width());
+    gameScene->addItem(bitcoinGroup);
+
+    bitcoinBackground->setPos(5, 5);
+    bitcoinIcon->setPos(10 + 5, 8);
+    bitcoinText->setPos(10 + 32 + 8, 10);
+
+}
+
+void GameMapDialog::updateGame()
+{
+    QVector<Enemy*> enemiesToRemove;
+    for (Enemy* &enemy : enemies) {
+        if (!enemy->isAlive()) {
+            bitcoinCount += enemy->getBitcoinReward();
+            enemiesToRemove.append(enemy);
+            gameScene->removeItem(enemy);
+        } else {
+            enemy->update();
+        }
+    }
+    for (Enemy* &enemy : enemiesToRemove) {
+        enemies.removeOne(enemy);
+        delete enemy;
+    }
+    updateBitcoinDisplay();
+    gameScene->update();
+
+    // Update state of all towers:
+    for (Tower* &tower : towers)
+    {
+        tower->Tick();
+    }
+}
+
+void GameMapDialog::updateBitcoinDisplay()
+{
+    bitcoinText->setPlainText(QString("Bitcoins: %1").arg(bitcoinCount));
+    qreal bgWidth = bitcoinText->boundingRect().width() + 32 + 12;
+    qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8;
+    bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
 }
 
 void GameMapDialog::buildTower(towerType type, int row, int col)
@@ -400,6 +307,90 @@ void GameMapDialog::upgradeTower(int row, int col) // Upgrade tower at tile that
 
 }
 
+void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
+{
+    // Force spawn point to be walkable
+    int gridX = static_cast<int>(pos.x() / tileSize);
+    int gridY = static_cast<int>(pos.y() / (tileSize / 2));
+    if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
+        mapGrid[gridY][gridX] = 1; // Grass tile
+        barrierGrid[2 * mapHeight - gridY - 1][gridX] = 0; // No barrier
+        qDebug() << "Forced spawn point" << pos << "to grass at grid (" << gridX << "," << gridY << ")";
+    } else {
+        qDebug() << "Error: Spawn point" << pos << "outside bounds";
+    }
+
+    Enemy* enemy = new Enemy(type, pos, this);
+    if (enemy->pixmap().isNull()) {
+        qDebug() << "Skipping spawn of type" << type << "due to null pixmap at" << pos;
+        delete enemy;
+        return;
+    }
+    switch (gameDifficulty) {
+        case easy:
+            enemy->setHealth(enemy->getHealth() * 0.8);
+            break;
+        case medium:
+            break;
+        case hard:
+            enemy->setHealth(enemy->getHealth() * 1.5);
+            enemy->setDamage(enemy->getDamage() * 1.2);
+            break;
+    }
+    enemy->setZValue(0);
+    enemies.append(enemy);
+    gameScene->addItem(enemy);
+    qDebug() << "Spawned enemy type" << type << "at" << pos;
+
+//    QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
+//    marker->setZValue(2);
+//    marker->setOpacity(0.5);
+}
+
+QVector<QPointF> GameMapDialog::getSpawnPoints()
+{
+    QVector<QPointF> spawnPoints;
+    spawnPoints << QPointF(80, 65) << QPointF(320, 115);
+    for (const QPointF& point : spawnPoints) {
+        int gridX = static_cast<int>(point.x() / tileSize);
+        int gridY = static_cast<int>(point.y() / (tileSize / 2));
+        if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
+            qDebug() << "Spawn point" << point << "grid (" << gridX << "," << gridY << ")";
+        } else {
+            qDebug() << "Error: Spawn point" << point << "outside bounds";
+        }
+    }
+    return spawnPoints;
+}
+
+void GameMapDialog::startNextWave()
+{
+    currentWave++;
+    enemiesToSpawn = enemiesPerWave + currentWave * 2;
+    qDebug() << "Starting wave" << currentWave << "with" << enemiesToSpawn << "enemies";
+
+    QTimer* spawnTimer = new QTimer(this);
+    int spawnInterval = 1000;
+    int enemiesSpawned = 0;
+
+    connect(spawnTimer, &QTimer::timeout, this, [=]() mutable {
+        if (enemiesSpawned < enemiesToSpawn) {
+            QVector<QPointF> spawnPoints = getSpawnPoints();
+            if (!spawnPoints.isEmpty()) {
+                QPointF spawnPos = spawnPoints[rand() % spawnPoints.size()];
+                EnemyType type = (currentWave < 3) ? Skeleton :
+                                 (currentWave < 6) ? Orc : Knight;
+                spawnEnemy(type, spawnPos);
+                enemiesSpawned++;
+            }
+        } else {
+            spawnTimer->stop();
+            spawnTimer->deleteLater();
+            qDebug() << "Wave" << currentWave << "completed";
+        }
+    });
+    spawnTimer->start(spawnInterval);
+}
 
 QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& target)
 {
@@ -501,6 +492,13 @@ QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& ta
     return path;
 }
 
+void GameMapDialog::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Escape && !pauseMenu) {
+        pauseGame();
+    }
+}
+
 void GameMapDialog::pauseGame()
 {
     if (!pauseMenu) {
@@ -535,4 +533,11 @@ void GameMapDialog::onSaveGame()
 void GameMapDialog::onExitGame()
 {
     close();
+}
+
+GameMapDialog::~GameMapDialog()
+{
+    gameScene->clear();
+    delete gameScene;
+    delete gameView;
 }

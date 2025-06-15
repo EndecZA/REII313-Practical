@@ -38,6 +38,7 @@ class GameMapDialog : public QDialog
 {
 public:
     explicit GameMapDialog(QWidget *parent = nullptr);
+    ~GameMapDialog();
     void setDifficulty(int);
     void setMap(int);
     void setMultiplayer(bool);
