@@ -63,38 +63,41 @@ public:
 
 
 protected:
-
     void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
-
     void onResumeGame();
     void onSaveGame();
     void onExitGame();
+    void buildTower(towerType, int row, int col); // Build tower at tile that sent the signal.
+    void sellTower(int row, int col); // Sell tower at tile that sent the signal.
+    void upgradeTower(int row, int col); // Upgrade tower at tile that sent the signal.
 
 private:
-
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
     QPixmap *tileset;
     QFile *mapFile;
+
     QVector<Enemy*> enemies;
+    QVector<Tower*> towers;
+    QVector<QPointF> getSpawnPoints();
+
     QTimer *waveTimer;
     QTimer *updateTimer;
+
     int currentWave;
     int enemiesToSpawn;
     int enemiesPerWave;
     int bitcoinCount;
+
     QGraphicsTextItem *bitcoinText;
     QGraphicsRectItem *bitcoinBackground;
     QGraphicsPixmapItem *bitcoinIcon;
     QGraphicsItemGroup *bitcoinGroup;
-    Tower *tower;
     PauseMenuDialog *pauseMenu;
 
-
     void spawnEnemy(EnemyType type, const QPointF& pos);
-    QVector<QPointF> getSpawnPoints();
     void startNextWave();
     void updateGame();
     void pauseGame();

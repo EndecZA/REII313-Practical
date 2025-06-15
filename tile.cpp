@@ -1,8 +1,10 @@
 #include "tile.h"
 
-Tile::Tile(int tileType, int barrierType, int row, int col) : QObject(), QGraphicsPixmapItem()
+Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPixmapItem()
 {
     // Initialize flood fill parameters:
+    row = r;
+    col = c;
     isBarrier = false;
     hasTower = false;
     weight = 1;
@@ -52,7 +54,7 @@ Tile::Tile(int tileType, int barrierType, int row, int col) : QObject(), QGraphi
     colPixmap *= tileSize;
     setPixmap(tileset.copy(colPixmap, rowPixmap, tileSize, tileSize));
     setPos(pos[0], pos[1]);
-    setZValue(-1);
+    setZValue(y()); // NB! Set Z Values according to y-position in scene!
 
     // Add barrier if there is a barrier to be added:
     if (barrierType == 0)
@@ -92,7 +94,7 @@ Tile::Tile(int tileType, int barrierType, int row, int col) : QObject(), QGraphi
             QGraphicsPixmapItem *barrier = new QGraphicsPixmapItem(tileset.copy(colPixmap, rowPixmap, tileSize, tileSize));
             barrier->setParentItem(this); // Make the tile the parent of the barrier.
             barrier->setPos(rand()%3 - 1, rand()%3 - 1 - tileSize/4); // Add vertical offset to accessory.
-            barrier->setZValue(-1);
+            barrier->setZValue(barrier->y());
         }
         else if (rand()%20 == 0 && tileType == 5)
         {
@@ -118,7 +120,7 @@ Tile::Tile(int tileType, int barrierType, int row, int col) : QObject(), QGraphi
             QGraphicsPixmapItem *barrier = new QGraphicsPixmapItem(tileset.copy(colPixmap, rowPixmap, tileSize, tileSize));
             barrier->setParentItem(this); // Make the tile the parent of the barrier.
             barrier->setPos(rand()%3 - 1, rand()%3 - 1 - tileSize/4); // Add vertical offset to accessory.
-            barrier->setZValue(-1);
+            barrier->setZValue(barrier->y());
         }
         else
         {
@@ -162,24 +164,26 @@ Tile::Tile(int tileType, int barrierType, int row, int col) : QObject(), QGraphi
         QGraphicsPixmapItem *barrier = new QGraphicsPixmapItem(tileset.copy(colPixmap, rowPixmap, tileSize, tileSize));
         barrier->setParentItem(this); // Make the tile the parent of the barrier.
         barrier->setPos(0, -tileSize/2); // Add vertical offset to accessory
-        barrier->setZValue(-1);
+        barrier->setZValue(barrier->y());
     }
-    setFlag(QGraphicsItem::ItemStacksBehindParent, false);
 
 }
 
 void Tile::addTower(Tower *t)
 {
-    if (!hasTower && !isBarrier)
+    if (!hasTower && !isBarrier && t != nullptr)
     {
         if (barrier != nullptr)
-            barrier->hide(); // Hide any accessories.
+            barrier->setVisible(false); // Hide accessory.
 
         hasTower = true;
         tower = t;
-        tower->setZValue(0);
         tower->setPos(pos[0], pos[1]);
+        tower->setZValue(tower->y());
+
+        emit flood(); // Reflood tiles. This tile is now unaccessable to enemies.
     }
+
 }
 
 Tower* Tile::removeTower() // Remove tower from tile.
@@ -187,34 +191,107 @@ Tower* Tile::removeTower() // Remove tower from tile.
     if (hasTower)
     {
         if (barrier != nullptr)
-            barrier->show(); // Show any accessories.
+            barrier->setVisible(true); // Show accessory.
 
         hasTower = false;
-        Tower* out = tower;
+        Tower* output = tower;
         tower = nullptr;
 
-        return out;
+        emit flood(); // Reflood tiles. This tile is now accessible to enemies.
+
+        return output;
     }
     else
         return nullptr;
+
 }
 
 void Tile::addEnemy(Enemy *e) // Add enemy to tile.
 {
     enemies.append(e);
     // Set enemy position here: e->setPos(pos[0], pos[1]); Take the old destination and make it the source, then add the new destination.
+    e->setZValue(e->y());
 
 }
 
 Enemy* Tile::removeEnemy(Enemy *e) // Remove enemy from tile.
 {
-    int p = enemies.indexOf(e);
-    if (p >= 0)
-    {
-        enemies.remove(p);
+    if (enemies.removeOne(e))
         return e;
-    }
     else
-        return nullptr; // Return nullptr of the enemy looked for is not contained in the vector.
+        return nullptr; // Return nullptr of the enemy is not contained in the vector.
+
+}
+
+void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
+{
+    if (e->button() == Qt::RightButton)
+    {
+        if (!isBarrier && !hasTower && enemies.isEmpty())
+        {
+            QMenu *towerMenu = new QMenu();
+            towerMenu->setStyleSheet(
+                "QMenu {"
+                "   background-color: #FFB347;"
+                "   color: black;"
+                "   border: 1px solid black;"
+                "   border-radius: 5px;"
+                "   font-family: 'Press Start 2P';"
+                "   font-size: 15px;"
+                "}");
+
+            QAction* barricadeTower = towerMenu->addAction("Build Barricade: ADD COST");
+            QAction* meleeTower = towerMenu->addAction("Build Melee Tower: ADD COST");
+            QAction* archerTower = towerMenu->addAction("Build Archer Tower: ADD COST");
+            QAction* fireTower = towerMenu->addAction("Build Fire Tower: ADD COST");
+            QAction* wizardTower = towerMenu->addAction("Build Wizard Tower: ADD COST");
+
+            connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
+            {
+                if (action == barricadeTower)
+                    emit buildTower(barricade, row, col);
+                else if (action == meleeTower)
+                    emit buildTower(melee, row, col);
+                else if (action == archerTower)
+                    emit buildTower(archer, row, col);
+                else if (action == fireTower)
+                    emit buildTower(fire, row, col);
+                else if (action == wizardTower)
+                    emit buildTower(wizard, row, col);
+
+                towerMenu->deleteLater();
+            });
+
+            towerMenu->popup(e->screenPos()); // Show menu at mouse position.
+        }
+        else if (hasTower)
+        {
+            QMenu *towerMenu = new QMenu();
+            towerMenu->setStyleSheet(
+                "QMenu {"
+                "   background-color: #FFB347;"
+                "   color: black;"
+                "   border: 1px solid black;"
+                "   border-radius: 5px;"
+                "   font-family: 'Press Start 2P';"
+                "   font-size: 15px;"
+                "}");
+
+            QAction* sell = towerMenu->addAction("Sell Tower");
+            QAction* upgrade = towerMenu->addAction("Upgrade Tower");
+
+            connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
+            {
+                if (action == sell)
+                    emit sellTower(row, col);
+                else if (action == upgrade)
+                    emit upgradeTower(row, col);
+
+                towerMenu->deleteLater();
+            });
+
+            towerMenu->popup(e->screenPos()); // Show menu at mouse position.
+        }
+    }
 
 }

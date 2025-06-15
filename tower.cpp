@@ -45,6 +45,11 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 
 }
 
+int Tower::getCost()
+{
+    return cost;
+}
+
 int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance after upgrade.
 {
     if (balance >= cost && towerLevel < 3) // Won't upgrade above 3rd level.

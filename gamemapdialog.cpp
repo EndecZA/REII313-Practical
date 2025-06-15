@@ -16,13 +16,13 @@
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
 {
-    setModal(true);
+        setModal(true);
         showMaximized();
         setFixedSize(1920,1080);
-        setWindowTitle("Game");
+        setWindowTitle("Dungeons & Towers");
 
         gameScene = new QGraphicsScene(this);
-        gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight);
+        gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight+32);
         gameScene->setItemIndexMethod(QGraphicsScene::NoIndex);
         gameScene->setBackgroundBrush(Qt::black);
 
@@ -38,7 +38,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         gameDifficulty = medium;
         mapType = map1;
         isMultiplayer = false;
-        bitcoinCount = 0;
+        bitcoinCount = 200; // SUBJECT TO CHANGE!
 
         bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
         bitcoinText->setFont(QFont("Arial", 10));
@@ -60,7 +60,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         bitcoinGroup->addToGroup(bitcoinBackground);
         bitcoinGroup->addToGroup(bitcoinIcon);
         bitcoinGroup->addToGroup(bitcoinText);
-        bitcoinGroup->setZValue(11);
+        bitcoinGroup->setZValue(bitcoinGroup->y() + bitcoinGroup->boundingRect().width());
         gameScene->addItem(bitcoinGroup);
 
         bitcoinBackground->setPos(5, 5);
@@ -70,8 +70,8 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         tileset = new QPixmap(":/resources/images/tileset.png");
         drawMap();
 
-        QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
-        debugRect->setZValue(10);
+//        QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
+//        debugRect->setZValue(10);
 
         QVector<QPointF> spawnPoints = getSpawnPoints();
         for (const QPointF& point : spawnPoints) {
@@ -90,14 +90,8 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
         updateTimer->start(125);
 
-        tower = new Tower(archer);
-        int row = 8;
-        int col = 4;
-        tower->setPos(32*col-8, row*16);
-        gameScene->addItem(tower);
-
         pauseMenu = nullptr;
-    }
+}
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)
 {
@@ -195,7 +189,7 @@ void GameMapDialog::startNextWave()
 void GameMapDialog::updateGame()
 {
     QVector<Enemy*> enemiesToRemove;
-    for (Enemy* enemy : enemies) {
+    for (Enemy* &enemy : enemies) {
         if (!enemy->isAlive()) {
             bitcoinCount += enemy->getBitcoinReward();
             enemiesToRemove.append(enemy);
@@ -204,15 +198,18 @@ void GameMapDialog::updateGame()
             enemy->update();
         }
     }
-    for (Enemy* enemy : enemiesToRemove) {
+    for (Enemy* &enemy : enemiesToRemove) {
         enemies.removeOne(enemy);
         delete enemy;
     }
     updateBitcoinDisplay();
     gameScene->update();
 
-    // TEST:
-    tower->Tick();
+    // Update state of all towers:
+    for (Tower* &tower : towers)
+    {
+        tower->Tick();
+    }
 }
 
 void GameMapDialog::updateBitcoinDisplay()
@@ -351,15 +348,55 @@ void GameMapDialog::drawMap()
             {
                 tileGrid[i][j] = new Tile(mapGrid[i][j], barrierGrid[i][j], i, j);
                 gameScene->addItem(tileGrid[i][j]);
-                tileGrid[i][j]->setZValue(-1);
+
+                // Connect relevant signals to slots:
+                connect(tileGrid[i][j], &Tile::buildTower, this, &GameMapDialog::buildTower);
+                connect(tileGrid[i][j], &Tile::sellTower, this, &GameMapDialog::sellTower);
+                connect(tileGrid[i][j], &Tile::upgradeTower, this, &GameMapDialog::upgradeTower);
             } 
             else
             {
-                tileGrid[i][j] = nullptr;
+                tileGrid[i][j] = nullptr; // Corner indices are null pointers.
             }
         }
     }
     qDebug() << "Added tiles and barriers to GraphicsView.";
+
+}
+
+void GameMapDialog::buildTower(towerType type, int row, int col)
+{
+    Tower *tower = new Tower(type);
+    if (bitcoinCount - tower->getCost() >= 0)
+    {
+        tileGrid[row][col]->addTower(tower);
+        gameScene->addItem(tower);
+
+        towers.append(tower);
+
+        bitcoinCount -= tower->getCost(); // Pay amount for tower.
+    }
+    else
+    {
+        tower->deleteLater();
+    }
+}
+
+void GameMapDialog::sellTower(int row, int col) // Sell tower at tile that sent the signal.
+{
+    Tower *tower = tileGrid[row][col]->removeTower();
+    if (tower != nullptr)
+    {
+        bitcoinCount += tower->getCost(); // Receive back amount payed for tower.
+        towers.removeOne(tower);
+        tower->deleteLater();
+    }
+}
+
+void GameMapDialog::upgradeTower(int row, int col) // Upgrade tower at tile that sent the signal.
+{
+    Tower *tower = tileGrid[row][col]->tower;
+    bitcoinCount = tower->Upgrade(bitcoinCount);
 
 }
 
