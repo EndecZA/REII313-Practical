@@ -174,12 +174,14 @@ void Tile::addTower(Tower *t)
     if (!hasTower && !isBarrier && t != nullptr)
     {
         if (barrier != nullptr)
-            barrier->hide(); // Hide any accessories.
+            barrier->setVisible(false); // Hide accessory.
 
         hasTower = true;
         tower = t;
         tower->setPos(pos[0], pos[1]);
         tower->setZValue(tower->y());
+
+        emit flood(); // Reflood tiles. This tile is now unaccessable to enemies.
     }
 
 }
@@ -189,11 +191,13 @@ Tower* Tile::removeTower() // Remove tower from tile.
     if (hasTower)
     {
         if (barrier != nullptr)
-            barrier->show(); // Show any accessories.
+            barrier->setVisible(true); // Show accessory.
 
         hasTower = false;
         Tower* output = tower;
         tower = nullptr;
+
+        emit flood(); // Reflood tiles. This tile is now accessible to enemies.
 
         return output;
     }
@@ -212,14 +216,10 @@ void Tile::addEnemy(Enemy *e) // Add enemy to tile.
 
 Enemy* Tile::removeEnemy(Enemy *e) // Remove enemy from tile.
 {
-    int p = enemies.indexOf(e);
-    if (p >= 0)
-    {
-        enemies.remove(p);
+    if (enemies.removeOne(e))
         return e;
-    }
     else
-        return nullptr; // Return nullptr of the enemy looked for is not contained in the vector.
+        return nullptr; // Return nullptr of the enemy is not contained in the vector.
 
 }
 
@@ -229,26 +229,68 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
     {
         if (!isBarrier && !hasTower && enemies.isEmpty())
         {
-            QMenu towerMenu;
+            QMenu *towerMenu = new QMenu();
+            towerMenu->setStyleSheet(
+                "QMenu {"
+                "   background-color: #FFB347;"
+                "   color: black;"
+                "   border: 1px solid black;"
+                "   border-radius: 5px;"
+                "   font-family: 'Press Start 2P';"
+                "   font-size: 15px;"
+                "}");
 
-            QAction* barricadeTower = towerMenu.addAction("Build Barricade: ADD COST");
-            QAction* meleeTower = towerMenu.addAction("Build Melee Tower: ADD COST");
-            QAction* archerTower = towerMenu.addAction("Build Archer Tower: ADD COST");
-            QAction* fireTower = towerMenu.addAction("Build Fire Tower: ADD COST");
-            QAction* wizardTower = towerMenu.addAction("Build Wizard Tower: ADD COST");
+            QAction* barricadeTower = towerMenu->addAction("Build Barricade: ADD COST");
+            QAction* meleeTower = towerMenu->addAction("Build Melee Tower: ADD COST");
+            QAction* archerTower = towerMenu->addAction("Build Archer Tower: ADD COST");
+            QAction* fireTower = towerMenu->addAction("Build Fire Tower: ADD COST");
+            QAction* wizardTower = towerMenu->addAction("Build Wizard Tower: ADD COST");
 
-            QAction* selectedAction = towerMenu.exec(e->screenPos()); // Shows the menu at mouse location.
+            connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
+            {
+                if (action == barricadeTower)
+                    emit buildTower(barricade, row, col);
+                else if (action == meleeTower)
+                    emit buildTower(melee, row, col);
+                else if (action == archerTower)
+                    emit buildTower(archer, row, col);
+                else if (action == fireTower)
+                    emit buildTower(fire, row, col);
+                else if (action == wizardTower)
+                    emit buildTower(wizard, row, col);
 
-            if (selectedAction == barricadeTower)
-                emit buildTower(barricade, row, col);
-            else if (selectedAction == meleeTower)
-                emit buildTower(melee, row, col);
-            else if (selectedAction == archerTower)
-                emit buildTower(archer, row, col);
-            else if (selectedAction == fireTower)
-                emit buildTower(fire, row, col);
-            else if (selectedAction == wizardTower)
-                emit buildTower(wizard, row, col);
+                towerMenu->deleteLater();
+            });
+
+            towerMenu->popup(e->screenPos()); // Show menu at mouse position.
+        }
+        else if (hasTower)
+        {
+            QMenu *towerMenu = new QMenu();
+            towerMenu->setStyleSheet(
+                "QMenu {"
+                "   background-color: #FFB347;"
+                "   color: black;"
+                "   border: 1px solid black;"
+                "   border-radius: 5px;"
+                "   font-family: 'Press Start 2P';"
+                "   font-size: 15px;"
+                "}");
+
+            QAction* sell = towerMenu->addAction("Sell Tower");
+            QAction* upgrade = towerMenu->addAction("Upgrade Tower");
+
+            connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
+            {
+                if (action == sell)
+                    emit sellTower(row, col);
+                else if (action == upgrade)
+                    emit upgradeTower(row, col);
+
+                towerMenu->deleteLater();
+            });
+
+            towerMenu->popup(e->screenPos()); // Show menu at mouse position.
         }
     }
 

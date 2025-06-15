@@ -5,7 +5,6 @@
 #include <QGraphicsPixmapItem>
 #include <QWidget>
 #include <QPixmap>
-#include "enemy.h"
 
 enum towerType {barricade, melee, archer, fire, wizard};
 enum towerState {idle, attacking};
@@ -18,8 +17,6 @@ public:
     explicit Tower(towerType);
     int getCost();
     void Tick(); // Tick function for tower.
-    void connectEnemy(Enemy*); // Function to connect/disconnect any enemy to the tower's attacking signal.
-                               // Each connected enemy takes damage per attack.
 
 private:
     QPixmap *pixmap;
@@ -36,10 +33,10 @@ private:
     int cost; // Cost of construction or upgrade.
 
 public slots:
-    int Upgrade(int); // Input: Currency balance. Output: Balance after upgrade.
+    int Upgrade(int balance); // Input: Currency balance. Output: Balance after upgrade.
 
 signals:
-    void Attack(int); // Attack connected enemies.
+    void Attack(int damage); // Attack connected enemies.
 
 };
 
