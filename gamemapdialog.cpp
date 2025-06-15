@@ -10,7 +10,7 @@
 #include <vector>
 #include <cmath>
 #include <QSound>
-#include <queue>
+#include <QQueue>
 
 
 GameMapDialog::GameMapDialog(QWidget *parent)
@@ -362,6 +362,114 @@ void GameMapDialog::drawMap()
     }
     qDebug() << "Added tiles and barriers to GraphicsView.";
 
+<<<<<<< Updated upstream
+=======
+    // Add currency display:
+    bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
+    bitcoinText->setFont(QFont("Arial", 10));
+    bitcoinText->setDefaultTextColor(Qt::white);
+
+    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
+    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
+    bitcoinBackground->setPen(Qt::NoPen);
+
+    QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
+    if (bitcoinPixmap.isNull()) {
+        qDebug() << "Failed to load bitcoin.png";
+        bitcoinPixmap = QPixmap(32, 32);
+        bitcoinPixmap.fill(Qt::yellow);
+    }
+    bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
+
+    bitcoinGroup = new QGraphicsItemGroup();
+    bitcoinGroup->addToGroup(bitcoinBackground);
+    bitcoinGroup->addToGroup(bitcoinIcon);
+    bitcoinGroup->addToGroup(bitcoinText);
+    bitcoinGroup->setZValue(bitcoinGroup->y() + bitcoinGroup->boundingRect().width());
+    gameScene->addItem(bitcoinGroup);
+
+    bitcoinBackground->setPos(5, 5);
+    bitcoinIcon->setPos(10 + 5, 8);
+    bitcoinText->setPos(10 + 32 + 8, 10);
+
+    floodFill(); // Call flood fill algorithm.
+}
+
+void GameMapDialog::floodFill()
+{
+    int destRow = 2*mapHeight-1;
+    int destCol = mapWidth - 1;
+    tileGrid[destRow][destCol]->isBarrier = false;
+    tileGrid[destRow][destCol]->hasTower = false;
+    tileGrid[destRow][destCol]->dist = 0; // Set destination distance to be zero.
+
+//    Tower *tower = new Tower(archer); // NB! STILL NEED TO ADD BASE TOWER TYPE TO Tower Class!
+//    tileGrid[destRow][destCol]->addTower(tower);
+//    gameScene->addItem(tower);
+//    towers.append(tower);
+
+    QQueue<Tile*> queue;
+    queue.enqueue(tileGrid[destRow][destCol]);
+    while (!queue.isEmpty())
+    {
+        Tile* tile = queue.dequeue();
+        int row = tile->row;
+        int col = tile->col;
+        int dist = tile->dist;
+
+        // Iterate over all adjacent tiles:
+        for (int i=-1; i<2; ++i)
+        {
+            for (int j=-1; j<2; ++j)
+            {
+                if (row+i >= 0 && row+i < 2*mapHeight && col+j >= 0 && col+j < 2*mapWidth)
+                if (i != 0 && j != 0 && tileGrid[row+i][col+j]->dist == -1)
+                if (!tileGrid[row+i][col+j]->isBarrier && !tileGrid[row+i][col+j]->hasTower)
+                {
+                    tileGrid[row+i][col+j]->dist = dist+1; // Update distance to destination.
+                    tileGrid[row+i][col+j]->next = tile; // Store pointer to next tile.
+                    queue.enqueue(tileGrid[row+i][col+j]); // Add adjacent tile to queue.
+                }
+            }
+        }
+    }
+
+    qDebug() << "Calculated shortest paths.";
+}
+
+void GameMapDialog::updateGame()
+{
+    QVector<Enemy*> enemiesToRemove;
+    for (Enemy* &enemy : enemies) {
+        if (!enemy->isAlive()) {
+            bitcoinCount += enemy->getBitcoinReward();
+            enemiesToRemove.append(enemy);
+            gameScene->removeItem(enemy);
+        } else {
+            enemy->update();
+        }
+    }
+    for (Enemy* &enemy : enemiesToRemove) {
+        enemies.removeOne(enemy);
+        delete enemy;
+    }
+    updateBitcoinDisplay();
+    gameScene->update();
+
+    // Update state of all towers:
+    for (Tower* &tower : towers)
+    {
+        tower->Tick();
+    }
+}
+
+void GameMapDialog::updateBitcoinDisplay()
+{
+    bitcoinText->setPlainText(QString("Bitcoins: %1").arg(bitcoinCount));
+    qreal bgWidth = bitcoinText->boundingRect().width() + 32 + 12;
+    qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8;
+    bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
+>>>>>>> Stashed changes
 }
 
 void GameMapDialog::buildTower(towerType type, int row, int col)
@@ -375,6 +483,8 @@ void GameMapDialog::buildTower(towerType type, int row, int col)
         towers.append(tower);
 
         bitcoinCount -= tower->getCost(); // Pay amount for tower.
+
+        floodFill(); // Recalculate shortest paths.
     }
     else
     {
@@ -390,6 +500,8 @@ void GameMapDialog::sellTower(int row, int col) // Sell tower at tile that sent 
         bitcoinCount += tower->getCost(); // Receive back amount payed for tower.
         towers.removeOne(tower);
         tower->deleteLater();
+
+        floodFill(); // Recalculate shortest paths.
     }
 }
 
@@ -400,6 +512,93 @@ void GameMapDialog::upgradeTower(int row, int col) // Upgrade tower at tile that
 
 }
 
+<<<<<<< Updated upstream
+=======
+QVector<QPointF> GameMapDialog::getSpawnPoints()
+{
+    QVector<QPointF> spawnPoints;
+    spawnPoints << QPointF(80, 65) << QPointF(320, 115);
+    for (const QPointF& point : spawnPoints) {
+        int gridX = static_cast<int>(point.x() / tileSize);
+        int gridY = static_cast<int>(point.y() / (tileSize / 2));
+        if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
+            qDebug() << "Spawn point" << point << "grid (" << gridX << "," << gridY << ")";
+        } else {
+            qDebug() << "Error: Spawn point" << point << "outside bounds";
+        }
+    }
+    return spawnPoints;
+}
+
+void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
+{
+    // Force spawn point to be walkable
+    int gridX = static_cast<int>(pos.x() / tileSize);
+    int gridY = static_cast<int>(pos.y() / (tileSize / 2));
+    if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
+        mapGrid[gridY][gridX] = 1; // Grass tile
+        barrierGrid[2 * mapHeight - gridY - 1][gridX] = 0; // No barrier
+        qDebug() << "Forced spawn point" << pos << "to grass at grid (" << gridX << "," << gridY << ")";
+    } else {
+        qDebug() << "Error: Spawn point" << pos << "outside bounds";
+    }
+
+    Enemy* enemy = new Enemy(type, pos, this);
+    if (enemy->pixmap().isNull()) {
+        qDebug() << "Skipping spawn of type" << type << "due to null pixmap at" << pos;
+        delete enemy;
+        return;
+    }
+    switch (gameDifficulty) {
+        case easy:
+            enemy->setHealth(enemy->getHealth() * 0.8);
+            break;
+        case medium:
+            break;
+        case hard:
+            enemy->setHealth(enemy->getHealth() * 1.5);
+            enemy->setDamage(enemy->getDamage() * 1.2);
+            break;
+    }
+    enemy->setZValue(0);
+    enemies.append(enemy);
+    gameScene->addItem(enemy);
+    qDebug() << "Spawned enemy type" << type << "at" << pos;
+
+//    QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
+//    marker->setZValue(2);
+//    marker->setOpacity(0.5);
+}
+
+void GameMapDialog::startNextWave()
+{
+    currentWave++;
+    enemiesToSpawn = enemiesPerWave + currentWave * 2;
+    qDebug() << "Starting wave" << currentWave << "with" << enemiesToSpawn << "enemies";
+
+    QTimer* spawnTimer = new QTimer(this);
+    int spawnInterval = 1000;
+    int enemiesSpawned = 0;
+
+    connect(spawnTimer, &QTimer::timeout, this, [=]() mutable {
+        if (enemiesSpawned < enemiesToSpawn) {
+            QVector<QPointF> spawnPoints = getSpawnPoints();
+            if (!spawnPoints.isEmpty()) {
+                QPointF spawnPos = spawnPoints[rand() % spawnPoints.size()];
+                EnemyType type = (currentWave < 3) ? Skeleton :
+                                 (currentWave < 6) ? Orc : Knight;
+                spawnEnemy(type, spawnPos);
+                enemiesSpawned++;
+            }
+        } else {
+            spawnTimer->stop();
+            spawnTimer->deleteLater();
+            qDebug() << "Wave" << currentWave << "completed";
+        }
+    });
+    spawnTimer->start(spawnInterval);
+}
+>>>>>>> Stashed changes
 
 QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& target)
 {

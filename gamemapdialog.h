@@ -69,6 +69,7 @@ private slots:
     void onResumeGame();
     void onSaveGame();
     void onExitGame();
+    void floodFill(); // Populate tiles with distance prameters and next tile pointers.
     void buildTower(towerType, int row, int col); // Build tower at tile that sent the signal.
     void sellTower(int row, int col); // Sell tower at tile that sent the signal.
     void upgradeTower(int row, int col); // Upgrade tower at tile that sent the signal.

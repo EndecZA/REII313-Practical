@@ -7,8 +7,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
     col = c;
     isBarrier = false;
     hasTower = false;
-    weight = 1;
-    dist = 999; // Initialize minimum distance.
+    dist = -1; // Initialize distance to destination tile.
     next = nullptr;
     tower = nullptr;
 
@@ -34,12 +33,10 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
         case 3: // Water:
             rowPixmap = 0;
             colPixmap = 1;
-            weight = 2; // Difficult terrain.
         break;
         case 4: // Lava:
             rowPixmap = 0;
             colPixmap = 3;
-            weight = 2; // Difficult terrain.
         break;
         case 5: // Brick Variant:
             rowPixmap = rand()%3 + 8;
@@ -180,8 +177,6 @@ void Tile::addTower(Tower *t)
         tower = t;
         tower->setPos(pos[0], pos[1]);
         tower->setZValue(tower->y());
-
-        emit flood(); // Reflood tiles. This tile is now unaccessable to enemies.
     }
 
 }
@@ -196,8 +191,6 @@ Tower* Tile::removeTower() // Remove tower from tile.
         hasTower = false;
         Tower* output = tower;
         tower = nullptr;
-
-        emit flood(); // Reflood tiles. This tile is now accessible to enemies.
 
         return output;
     }

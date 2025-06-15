@@ -19,7 +19,6 @@ public:
     int row, col;
     bool isBarrier;
     bool hasTower;
-    int weight; // Weight modifier for the type of terrain. 1 => normal terain, 2 => difficult terrain
     int dist; // Distance from current tile to base. Updated during flood filling algorithm.
     Tile *next; // Next tile in shortest path to the base.
     Tower *tower; // Pointer to tower object contained in tile.
@@ -49,7 +48,6 @@ signals:
     void buildTower(towerType, int row, int col); // Send signal to build tower on the map.
     void sellTower(int row, int col); // Send signal to sell the tower.
     void upgradeTower(int row, int col); // Send signal to upgrade tower.
-    void flood(); // If the tile is modified, reflood shortest path.
 
 };
 
