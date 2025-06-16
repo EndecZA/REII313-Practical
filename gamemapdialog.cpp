@@ -647,23 +647,27 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
 //WORK IN PROGRESS
 bool GameMapDialog::loadGameFromFile(const QString& filename)
 {
-    // Construct path relative to application directory
     QString filePath = QCoreApplication::applicationDirPath() + "/saves/" + filename;
+    qDebug() << "File Path:" << filePath;
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for loading:" << filePath;
-        qDebug() << "Current working directory:" << QDir::currentPath();
         return false;
     }
 
-    QTextStream in(&file);
+    // Read the entire file into a QString
+    QString fileContent = file.readAll();
+    qDebug() << "Loaded file content:\n" << fileContent; // Debugging line
 
     // Clear current game state BEFORE loading new:
-    clearGameState();
+    //clearGameState();
+
+    // Split the content into lines
+    QStringList lines = fileContent.split('\n', QString::SkipEmptyParts);
 
     // Read header lines for map/difficulty/bitcoin/wave:
-    while (!in.atEnd()) {
-        QString line = in.readLine();
+    for (const QString& line : qAsConst(lines)) {
+        qDebug() << "Read line:" << line; // Debugging line
         if (line.startsWith("MapType:")) {
             bool ok;
             int mt = line.section(':', 1).trimmed().toInt(&ok);
@@ -710,14 +714,15 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
     updateBitcoinDisplay(); // Update UI immediately
 
     // Read enemies:
-    while (!in.atEnd()) {
-        QString line = in.readLine().trimmed();
-        if (line.isEmpty()) break; // Empty line means end of enemies section
+    for (int i = 0; i < lines.size(); ++i) {
+        QString line = lines[i].trimmed();
+        qDebug() << "Enemy line:" << line; // Debugging line
+        if (line.isEmpty()) continue; // Skip empty lines
         QStringList parts = line.split(' ', QString::SkipEmptyParts);
 
         if (parts.size() < 4) {
             qDebug() << "Invalid enemy line format:" << line;
-            break;
+            continue;
         }
 
         bool ok;
@@ -745,7 +750,7 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
 
     // Recompute paths for loaded enemies
     QPointF target(450, tileSize / 2 * mapHeight);
-    for (Enemy* enemy : enemies) {
+    for (Enemy* enemy : qAsConst(enemies)) {
         QVector<QPointF> path = findPath(enemy->pos(), target);
         if (!path.isEmpty()) {
             enemy->setPath(path);
@@ -755,13 +760,14 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
     }
 
     // Read towers:
-    while (!in.atEnd()) {
-        QString line = in.readLine().trimmed();
+    for (int i = 0; i < lines.size(); ++i) {
+        QString line = lines[i].trimmed();
+        qDebug() << "Tower line:" << line; // Debugging line
         if (line.isEmpty()) continue;
         QStringList parts = line.split(' ', QString::SkipEmptyParts);
         if (parts.size() < 4) {
             qDebug() << "Invalid tower line format:" << line;
-            break;
+            continue;
         }
 
         bool ok;
