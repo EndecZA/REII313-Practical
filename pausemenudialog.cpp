@@ -80,7 +80,6 @@ void PauseMenuDialog::onSaveClicked()
 {
     qDebug() << "PauseMenuDialog: Save clicked";
     emit saveGame();
-    // Placeholder: Save functionality to be implemented later
     accept();
 }
 

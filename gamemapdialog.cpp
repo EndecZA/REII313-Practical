@@ -643,6 +643,8 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
     return true;
 }
 
+
+//WORK IN PROGRESS
 bool GameMapDialog::loadGameFromFile(const QString& filename)
 {
     // Construct path relative to application directory
@@ -742,11 +744,11 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
     }
 
     // Recompute paths for loaded enemies
-    QPointF target(450, tileSize / 2 * mapHeight); // Adjust target as per your game’s target point
+    QPointF target(450, tileSize / 2 * mapHeight);
     for (Enemy* enemy : enemies) {
         QVector<QPointF> path = findPath(enemy->pos(), target);
         if (!path.isEmpty()) {
-            enemy->setPath(path); // Now works with updated Enemy class
+            enemy->setPath(path);
         } else {
             qDebug() << "No valid path found for enemy at" << enemy->pos();
         }
