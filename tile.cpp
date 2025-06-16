@@ -45,7 +45,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
             rowPixmap = rand()%3 + 8;
             colPixmap = 0;
         break;
-        case -1: // Base Tower position: (use brick variant)
+        case 6: // Base Tower position: (use brick variant)
             rowPixmap = rand()%3 + 8;
             colPixmap = 0;
             isBase = true;

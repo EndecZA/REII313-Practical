@@ -35,7 +35,7 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
         break;
         case base:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 150; damage = 100; fireRate = 5; range = 10;
+            cost = 0; damage = 0; fireRate = 0; range = 0; health = 500;
         break;
     }
     pixmap = new QPixmap(path);

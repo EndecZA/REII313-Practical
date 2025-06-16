@@ -245,7 +245,7 @@ void GameMapDialog::drawMap()
     bitcoinIcon->setPos(10 + 5, 8);
     bitcoinText->setPos(10 + 32 + 8, 10);
 
-    floodFill(); // Call flood fill algorithm.
+    buildTower(base, baseRow, baseCol); // Build base tower and run flooding algorithm.
 }
 
 void GameMapDialog::floodFill()
@@ -261,12 +261,13 @@ void GameMapDialog::floodFill()
     {
         for (int j=0; j<2*mapWidth; ++j)
         {
-            tileGrid[i][j]->dist = -1;
-            tileGrid[i][j]->next = nullptr;
+            if (tileGrid[i][j] != nullptr)
+            {
+                tileGrid[i][j]->dist = -1;
+                tileGrid[i][j]->next = nullptr;
+            }
         }
     }
-
-    buildTower(base, baseRow, baseCol);
 
     Tile* baseTile = tileGrid[baseRow][baseCol];
     baseTile->dist = 0; // Set destination distance to be zero.
@@ -287,33 +288,33 @@ void GameMapDialog::floodFill()
             int adjCol = col;
             switch (i)
             {
-                case 0: // N:
+                case 0: // NW:
+                    --adjRow;
+                    --adjCol;
+                break;
+                case 1: // SW:
+                    ++adjRow;
+                    --adjCol;
+                break;
+                case 2: // SE:
+                    ++adjRow;
+                    ++adjCol;
+                break;
+                case 3: // NE:
+                    --adjRow;
+                    ++adjCol;
+                break;
+                case 4: // N:
                     adjRow -= 2;
                 break;
-                case 1: // W:
+                case 5: // W:
                     adjCol -= 2;
                 break;
-                case 2: // S:
+                case 6: // S:
                     adjRow += 2;
                 break;
-                case 3: // E:
+                case 7: // E:
                     adjCol += 2;
-                break;
-                case 4: // NW:
-                    --adjRow;
-                    --adjCol;
-                break;
-                case 5: // SW:
-                    ++adjRow;
-                    --adjCol;
-                break;
-                case 6: // SE:
-                    ++adjRow;
-                    ++adjCol;
-                break;
-                case 7: // NE:
-                    --adjRow;
-                    ++adjCol;
                 break;
             }
 
@@ -333,7 +334,7 @@ void GameMapDialog::floodFill()
         }
     }
 
-    qDebug() << "Calculated shortest paths.";
+    qDebug() << "Game map flooded.";
 }
 
 void GameMapDialog::updateGame()
