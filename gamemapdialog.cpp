@@ -543,8 +543,18 @@ void GameMapDialog::onSaveGame()
 
 void GameMapDialog::onExitGame()
 {
+    // Stop all gameplay timers to halt spawning and updating
+    waveTimer->stop();
+    updateTimer->stop();
+
+
+    clearGameState();
+
+    qDebug() << "Exiting game: All timers stopped, game processes halted.";
+
     close();
 }
+
 
 GameMapDialog::~GameMapDialog()
 {
@@ -603,7 +613,7 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
     out << "BitcoinCount: " << bitcoinCount << "\n";
     out << "CurrentWave: " << currentWave << "\n";
 
-    out << "\nEnemies:\n";
+    out << "\nEnemies:";
     for (Enemy* enemy : enemies) {
         out << (int)enemy->getType() << " "
             << enemy->pos().x() << " "
@@ -611,7 +621,7 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
             << enemy->getHealth() << "\n";
     }
 
-    out << "\nTowers:\n";
+    out << "\nTowers:";
     for (Tower* tower : towers) {
         int row = 0;
         int col = 0;
