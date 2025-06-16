@@ -95,7 +95,7 @@ private:
     int enemiesToSpawn;
     int enemiesPerWave;
     int bitcoinCount;
-    int loadedCount;
+    int savedBitcoinCount;
 
     QGraphicsTextItem *bitcoinText;
     QGraphicsRectItem *bitcoinBackground;

@@ -244,9 +244,13 @@ void GameMapDialog::updateGame()
     QVector<Enemy*> enemiesToRemove;
     for (Enemy* &enemy : enemies) {
         if (!enemy->isAlive()) {
-            bitcoinCount += enemy->getBitcoinReward();
+            if (!enemy->isJustLoaded()) {
+                bitcoinCount += enemy->getBitcoinReward();
+            }
             enemiesToRemove.append(enemy);
             gameScene->removeItem(enemy);
+        } else if (enemy->isJustLoaded()) {
+            enemy->setJustLoaded(false);  // Reset flag so future deaths award bitcoins
         } else {
             enemy->update();
         }
@@ -258,12 +262,12 @@ void GameMapDialog::updateGame()
     updateBitcoinDisplay();
     gameScene->update();
 
-    // Update state of all towers:
     for (Tower* &tower : towers)
     {
         tower->Tick();
     }
 }
+
 
 void GameMapDialog::updateBitcoinDisplay()
 {
@@ -345,9 +349,7 @@ void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
     gameScene->addItem(enemy);
     qDebug() << "Spawned enemy type" << type << "at" << pos;
 
-//    QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
-//    marker->setZValue(2);
-//    marker->setOpacity(0.5);
+
 }
 
 QVector<QPointF> GameMapDialog::getSpawnPoints()
@@ -565,14 +567,14 @@ GameMapDialog::~GameMapDialog()
 void GameMapDialog::clearGameState()
 {
     // Remove all enemies from scene and clear vector
-    for (Enemy* enemy : enemies) {
+    for (Enemy* enemy : qAsConst(enemies)) {
         gameScene->removeItem(enemy);
         delete enemy;
     }
     enemies.clear();
 
     // Remove all towers from scene and clear vector
-    for (Tower* tower : towers) {
+    for (Tower* tower : qAsConst(towers)) {
         gameScene->removeItem(tower);
         delete tower;
     }
@@ -592,6 +594,8 @@ void GameMapDialog::clearGameState()
 
 bool GameMapDialog::saveGameToFile(const QString& filename)
 {
+
+    savedBitcoinCount = bitcoinCount;
     // Construct path relative to application directory
     QString saveDirPath = QCoreApplication::applicationDirPath() + "/saves";
     QDir saveDir(saveDirPath);
@@ -609,8 +613,7 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
 
     out << "MapType: " << (int)mapType << "\n";
     out << "Difficulty: " << (int)gameDifficulty << "\n";
-    out << "BitcoinCount: " << bitcoinCount << "\n";
-    loadedCount = bitcoinCount;
+    out << "BitcoinCount: " << savedBitcoinCount << "\n";
     out << "CurrentWave: " << currentWave << "\n";
 
     out << "\nEnemies:\n";
@@ -643,8 +646,6 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
     return true;
 }
 
-
-//WORK IN PROGRESS
 bool GameMapDialog::loadGameFromFile(const QString& filename)
 {
     QString filePath = QCoreApplication::applicationDirPath() + "/saves/" + filename;
@@ -685,14 +686,17 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
                 qDebug() << "Invalid Difficulty format in line:" << line;
             }
         } else if (line.startsWith("BitcoinCount:")) {
-            bool ok = true;
-          bitcoinCount = line.section(':', 1).trimmed().toInt(&ok);
-            if (ok) {
-                qDebug() << "Loaded bitcoinCount:" << loadedCount;
-            } else {
-                qDebug() << "Invalid BitcoinCount format in line:" << line;
-                bitcoinCount = 200; // Default value
-            }
+                bool ok = true;
+                int count = line.section(':', 1).trimmed().toInt(&ok);
+                if (ok) {
+                    bitcoinCount = count; // Set bitcoinCount directly from loaded value
+                    savedBitcoinCount = bitcoinCount; // Synchronize saved count
+                    qDebug() << "Loaded bitcoinCount:" << bitcoinCount;
+                } else {
+                    qDebug() << "Invalid BitcoinCount format in line:" << line;
+                    bitcoinCount = 200; // Default value
+                    savedBitcoinCount = 200; // Synchronize saved count
+                }
         } else if (line.startsWith("CurrentWave:")) {
             bool ok;
             currentWave = line.section(':', 1).trimmed().toInt(&ok);
@@ -708,7 +712,7 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
 
     // Draw map using loaded mapType
     drawMap();
-    updateBitcoinDisplay(); // Update UI immediately
+
 
     // Read enemies:
     for (int i = 0; i < lines.size(); ++i) {
@@ -736,7 +740,8 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
         int gridY = static_cast<int>(y / (tileSize / 2));
         if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight && mapGrid[gridY][gridX] != 0) {
             Enemy* enemy = new Enemy(etype, QPointF(x, y), this);
-            enemy->setHealth(health);
+            enemy->setHealth(health > 0 ? health : 1);
+            enemy->setJustLoaded(true);
             enemies.append(enemy);
             gameScene->addItem(enemy);
             qDebug() << "Loaded enemy type" << etype << "at" << x << y << "health" << health;
@@ -793,6 +798,8 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
     // Restart timers
     waveTimer->start(10000);
     updateTimer->start(125);
+    bitcoinCount = savedBitcoinCount;
+    updateBitcoinDisplay(); // Update UI immediately
 
     file.close();
     return true;

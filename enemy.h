@@ -41,7 +41,11 @@ public:
     void UpdateAnimation();
     void update();
 
-    void setPath(const QVector<QPointF>& newPath); // Added to allow external path setting
+    void setPath(const QVector<QPointF>& newPath);
+    void setJustLoaded(bool value) { justLoaded = value; }
+    bool isJustLoaded() const { return justLoaded; }
+
+
 
 private:
     EnemyType type;
@@ -68,6 +72,9 @@ private:
     QTime lastUpdateTime;
     QVector<QPointF> path;
     int currentWaypointIndex;
+
+
+    bool justLoaded = false;
 };
 
 #endif // ENEMY_H
