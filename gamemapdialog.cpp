@@ -33,8 +33,10 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         int scale = 1920/(tileSize*mapWidth);
         gameView->scale(scale, scale);
+        gameView->centerOn(1920/2, 0);
         gameView->show();
 
+        // Initialize game attributes:
         gameDifficulty = medium;
         mapType = map1;
         isMultiplayer = false;
@@ -42,27 +44,16 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         baseRow = -1;
         baseCol = -1;
 
-        tileset = new QPixmap(":/resources/images/tileset.png");
-
-//        QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
-//        debugRect->setZValue(10);
-
-        QVector<QPointF> spawnPoints = getSpawnPoints();
-        for (const QPointF& point : spawnPoints) {
-            QGraphicsRectItem* spawnMarker = gameScene->addRect(point.x() - 16, point.y() - 16, 32, 32, QPen(Qt::yellow), QBrush(Qt::yellow));
-            spawnMarker->setZValue(9);
-        }
-
         currentWave = 0;
         enemiesPerWave = 5;
         enemiesToSpawn = 0;
-        waveTimer = new QTimer(this);
-        connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
+//        waveTimer = new QTimer(this);
+//        connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
 //        waveTimer->start(10000);
 
         updateTimer = new QTimer(this);
         connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
-        updateTimer->start(125);
+        updateTimer->start(1000/frameRate);
 
         pauseMenu = nullptr;
 }
@@ -75,6 +66,8 @@ void GameMapDialog::setDifficulty(int dif)
             gameDifficulty = easy;
             enemiesPerWave = 3;
             break;
+        default:
+            [[fallthrough]];
         case 1:
             gameDifficulty = medium;
             enemiesPerWave = 5;
@@ -83,10 +76,6 @@ void GameMapDialog::setDifficulty(int dif)
             gameDifficulty = hard;
             enemiesPerWave = 7;
             break;
-        default:
-            gameDifficulty = medium;
-            enemiesPerWave = 5;
-            break;
     }
 }
 
@@ -94,6 +83,8 @@ void GameMapDialog::setMap(int map)
 {
     switch (map)
     {
+        default:
+            [[fallthrough]];
         case 0:
             mapType = map1;
             break;
@@ -102,9 +93,6 @@ void GameMapDialog::setMap(int map)
             break;
         case 2:
             mapType = map3;
-            break;
-        default:
-            mapType = map1;
             break;
     }
 }
@@ -245,7 +233,9 @@ void GameMapDialog::drawMap()
     bitcoinIcon->setPos(10 + 5, 8);
     bitcoinText->setPos(10 + 32 + 8, 10);
 
-    buildTower(base, baseRow, baseCol); // Build base tower and run flooding algorithm.
+    // Build base tower and run flooding algorithm:
+    if (baseRow != -1 && baseCol != -1)
+        buildTower(base, baseRow, baseCol);
 }
 
 void GameMapDialog::floodFill()
@@ -339,28 +329,21 @@ void GameMapDialog::floodFill()
 
 void GameMapDialog::updateGame()
 {
-    QVector<Enemy*> enemiesToRemove;
-    for (Enemy* &enemy : enemies) {
-        if (!enemy->isAlive()) {
-            bitcoinCount += enemy->getBitcoinReward();
-            enemiesToRemove.append(enemy);
-            gameScene->removeItem(enemy);
-        } else {
-            enemy->update();
-        }
+    // Update state of all enemies:
+    for (Enemy* &enemy : enemies)
+    {
+        enemy->Tick();
     }
-    for (Enemy* &enemy : enemiesToRemove) {
-        enemies.removeOne(enemy);
-        delete enemy;
-    }
-    updateBitcoinDisplay();
-    gameScene->update();
 
     // Update state of all towers:
     for (Tower* &tower : towers)
     {
         tower->Tick();
     }
+
+    updateBitcoinDisplay();
+    gameScene->update();
+
 }
 
 void GameMapDialog::updateBitcoinDisplay()
@@ -412,190 +395,70 @@ void GameMapDialog::upgradeTower(int row, int col) // Upgrade tower at tile that
 
 }
 
-QVector<QPointF> GameMapDialog::getSpawnPoints()
-{
-    QVector<QPointF> spawnPoints;
-    spawnPoints << QPointF(80, 65) << QPointF(320, 115);
-    for (const QPointF& point : spawnPoints) {
-        int gridX = static_cast<int>(point.x() / tileSize);
-        int gridY = static_cast<int>(point.y() / (tileSize / 2));
-        if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
-            qDebug() << "Spawn point" << point << "grid (" << gridX << "," << gridY << ")";
-        } else {
-            qDebug() << "Error: Spawn point" << point << "outside bounds";
-        }
-    }
-    return spawnPoints;
-}
+//void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
+//{
+//    // Force spawn point to be walkable
+//    int gridX = static_cast<int>(pos.x() / tileSize);
+//    int gridY = static_cast<int>(pos.y() / (tileSize / 2));
+//    if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
+//        mapGrid[gridY][gridX] = 1; // Grass tile
+//        barrierGrid[2 * mapHeight - gridY - 1][gridX] = 0; // No barrier
+//        qDebug() << "Forced spawn point" << pos << "to grass at grid (" << gridX << "," << gridY << ")";
+//    } else {
+//        qDebug() << "Error: Spawn point" << pos << "outside bounds";
+//    }
 
-void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
-{
-    // Force spawn point to be walkable
-    int gridX = static_cast<int>(pos.x() / tileSize);
-    int gridY = static_cast<int>(pos.y() / (tileSize / 2));
-    if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight) {
-        mapGrid[gridY][gridX] = 1; // Grass tile
-        barrierGrid[2 * mapHeight - gridY - 1][gridX] = 0; // No barrier
-        qDebug() << "Forced spawn point" << pos << "to grass at grid (" << gridX << "," << gridY << ")";
-    } else {
-        qDebug() << "Error: Spawn point" << pos << "outside bounds";
-    }
+//    Enemy* enemy = new Enemy(type, pos, this);
+//    if (enemy->pixmap().isNull()) {
+//        qDebug() << "Skipping spawn of type" << type << "due to null pixmap at" << pos;
+//        delete enemy;
+//        return;
+//    }
+//    switch (gameDifficulty) {
+//        case easy:
+//            enemy->setHealth(enemy->getHealth() * 0.8);
+//            break;
+//        case medium:
+//            break;
+//        case hard:
+//            enemy->setHealth(enemy->getHealth() * 1.5);
+//            enemy->setDamage(enemy->getDamage() * 1.2);
+//            break;
+//    }
+//    enemy->setZValue(0);
+//    enemies.append(enemy);
+//    gameScene->addItem(enemy);
+//    qDebug() << "Spawned enemy type" << type << "at" << pos;
+//}
 
-    Enemy* enemy = new Enemy(type, pos, this);
-    if (enemy->pixmap().isNull()) {
-        qDebug() << "Skipping spawn of type" << type << "due to null pixmap at" << pos;
-        delete enemy;
-        return;
-    }
-    switch (gameDifficulty) {
-        case easy:
-            enemy->setHealth(enemy->getHealth() * 0.8);
-            break;
-        case medium:
-            break;
-        case hard:
-            enemy->setHealth(enemy->getHealth() * 1.5);
-            enemy->setDamage(enemy->getDamage() * 1.2);
-            break;
-    }
-    enemy->setZValue(0);
-    enemies.append(enemy);
-    gameScene->addItem(enemy);
-    qDebug() << "Spawned enemy type" << type << "at" << pos;
+//void GameMapDialog::startNextWave()
+//{
+//    currentWave++;
+//    enemiesToSpawn = enemiesPerWave + currentWave * 2;
+//    qDebug() << "Starting wave" << currentWave << "with" << enemiesToSpawn << "enemies";
 
-//    QGraphicsRectItem* marker = gameScene->addRect(pos.x() - 32, pos.y() - 32, 64, 64, QPen(Qt::blue), QBrush(Qt::blue));
-//    marker->setZValue(2);
-//    marker->setOpacity(0.5);
-}
+//    QTimer* spawnTimer = new QTimer(this);
+//    int spawnInterval = 1000;
+//    int enemiesSpawned = 0;
 
-void GameMapDialog::startNextWave()
-{
-    currentWave++;
-    enemiesToSpawn = enemiesPerWave + currentWave * 2;
-    qDebug() << "Starting wave" << currentWave << "with" << enemiesToSpawn << "enemies";
-
-    QTimer* spawnTimer = new QTimer(this);
-    int spawnInterval = 1000;
-    int enemiesSpawned = 0;
-
-    connect(spawnTimer, &QTimer::timeout, this, [=]() mutable {
-        if (enemiesSpawned < enemiesToSpawn) {
-            QVector<QPointF> spawnPoints = getSpawnPoints();
-            if (!spawnPoints.isEmpty()) {
-                QPointF spawnPos = spawnPoints[rand() % spawnPoints.size()];
-                EnemyType type = (currentWave < 3) ? Skeleton :
-                                 (currentWave < 6) ? Orc : Knight;
-                spawnEnemy(type, spawnPos);
-                enemiesSpawned++;
-            }
-        } else {
-            spawnTimer->stop();
-            spawnTimer->deleteLater();
-            qDebug() << "Wave" << currentWave << "completed";
-        }
-    });
-    spawnTimer->start(spawnInterval);
-}
-
-QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& target)
-{
-    int startX = static_cast<int>(std::round(start.x() / tileSize));
-    int startY = static_cast<int>(std::round(start.y() / (tileSize / 2)));
-    int targetX = static_cast<int>(target.x() / tileSize);
-    int targetY = static_cast<int>(target.y() / (tileSize / 2));
-
-    startX = qBound(0, startX, 2 * mapWidth - 1);
-    startY = qBound(0, startY, 2 * mapHeight - 1);
-    targetX = qBound(0, targetX, 2 * mapWidth - 1);
-    targetY = qBound(0, targetY, 2 * mapHeight - 1);
-
-    QVector<QVector<int>> distances(2 * mapHeight, QVector<int>(2 * mapWidth, std::numeric_limits<int>::max()));
-    QVector<QVector<QPoint>> previous(2 * mapHeight, QVector<QPoint>(2 * mapWidth, QPoint(-1, -1)));
-    QVector<QPoint> unvisited;
-
-    for (int y = 0; y < 2 * mapHeight; ++y)
-        for (int x = 0; x < 2 * mapWidth; ++x)
-            unvisited.append(QPoint(x, y));
-
-    distances[startY][startX] = 0;
-
-    while (!unvisited.isEmpty()) {
-        int minDist = std::numeric_limits<int>::max();
-        int minIndex = -1;
-        for (int i = 0; i < unvisited.size(); ++i) {
-            QPoint node = unvisited[i];
-            int dist = distances[node.y()][node.x()];
-            if (dist < minDist) {
-                minDist = dist;
-                minIndex = i;
-            }
-        }
-        if (minIndex == -1)
-            break;
-
-        QPoint current = unvisited[minIndex];
-        unvisited.remove(minIndex);
-
-        int currX = current.x();
-        int currY = current.y();
-
-        if (currX == targetX && currY == targetY)
-            break;
-
-        QVector<QPoint> neighbors = {QPoint(currX, currY - 1), QPoint(currX, currY + 1), QPoint(currX - 1, currY), QPoint(currX + 1, currY)};
-        for (const QPoint& neighbor : neighbors) {
-            int nx = neighbor.x();
-            int ny = neighbor.y();
-            if (nx < 0 || nx >= 2 * mapWidth || ny < 0 || ny >= 2 * mapHeight)
-                continue;
-
-            int barrierY = 2 * mapHeight - ny - 1;
-            if (barrierGrid[barrierY][nx] != 0)
-                continue;
-
-            if (!unvisited.contains(neighbor))
-                continue;
-
-            int altDist = distances[currY][currX] + 1;
-            if (altDist < distances[ny][nx]) {
-                distances[ny][nx] = altDist;
-                previous[ny][nx] = current;
-            }
-        }
-    }
-
-    QVector<QPointF> path;
-    QPoint step(targetX, targetY);
-
-    if (distances[targetY][targetX] == std::numeric_limits<int>::max()) {
-        return path;
-    }
-
-    QRectF sceneRect = gameScene->sceneRect();
-    const qreal maxX = 450.0;
-
-    while (step.x() != -1 && step.y() != -1 && !(step.x() == startX && step.y() == startY)) {
-        qreal px = step.x() * tileSize + tileSize / 2;
-        qreal py = step.y() * (tileSize / 2) + tileSize / 4;
-        px = qBound(sceneRect.left(), px, qMin(sceneRect.right(), maxX));
-        py = qBound(sceneRect.top(), py, sceneRect.bottom());
-        path.prepend(QPointF(px, py));
-        step = previous[step.y()][step.x()];
-    }
-
-    qreal startPx = startX * tileSize + tileSize / 2;
-    qreal startPy = startY * (tileSize / 2) + tileSize / 4;
-    startPx = qBound(sceneRect.left(), startPx, qMin(sceneRect.right(), maxX));
-    startPy = qBound(sceneRect.top(), startPy, sceneRect.bottom());
-    path.prepend(QPointF(startPx, startPy));
-
-    for (int i = 0; i < path.size() - 1; ++i) {
-        QGraphicsLineItem* line = gameScene->addLine(path[i].x(), path[i].y(), path[i + 1].x(), path[i + 1].y(), QPen(Qt::green, 2));
-        line->setZValue(8);
-    }
-
-    return path;
-}
+//    connect(spawnTimer, &QTimer::timeout, this, [=]() mutable {
+//        if (enemiesSpawned < enemiesToSpawn) {
+//            QVector<QPointF> spawnPoints = getSpawnPoints();
+//            if (!spawnPoints.isEmpty()) {
+//                QPointF spawnPos = spawnPoints[rand() % spawnPoints.size()];
+//                EnemyType type = (currentWave < 3) ? Skeleton :
+//                                 (currentWave < 6) ? Orc : Knight;
+//                spawnEnemy(type, spawnPos);
+//                enemiesSpawned++;
+//            }
+//        } else {
+//            spawnTimer->stop();
+//            spawnTimer->deleteLater();
+//            qDebug() << "Wave" << currentWave << "completed";
+//        }
+//    });
+//    spawnTimer->start(spawnInterval);
+//}
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)
 {
@@ -607,7 +470,7 @@ void GameMapDialog::keyPressEvent(QKeyEvent *event)
 void GameMapDialog::pauseGame()
 {
     if (!pauseMenu) {
-        waveTimer->stop();
+//        waveTimer->stop();
         updateTimer->stop();
         pauseMenu = new PauseMenuDialog(this);
         connect(pauseMenu, &PauseMenuDialog::resumeGame, this, &GameMapDialog::onResumeGame);
@@ -619,7 +482,7 @@ void GameMapDialog::pauseGame()
 
 void GameMapDialog::resumeGame()
 {
-    waveTimer->start();
+//    waveTimer->start();
     updateTimer->start();
     pauseMenu = nullptr;
 }

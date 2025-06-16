@@ -210,20 +210,31 @@ Tower* Tile::removeTower() // Remove tower from tile.
 
 void Tile::addEnemy(Enemy *e) // Add enemy to tile.
 {
-    enemies.append(e);
-    // Connect enemy to signal here!!
-    // Set enemy position here: e->setPos(pos[0], pos[1]); Take the old destination and make it the source, then add the new destination.
-    e->setZValue(e->y());
+    if (e != nullptr)
+    {
+        enemies.append(e);
+        connect(e, &Enemy::moveEnemy, this, &Tile::fetchNext);
+        e->setDest(pos[0], pos[1]);
+    }
 
 }
 
 Enemy* Tile::removeEnemy(Enemy *e) // Remove enemy from tile.
 {
     if (enemies.removeOne(e))
-        // Disconnect any connections here!!
+    {
+        disconnect(e, &Enemy::moveEnemy, this, &Tile::fetchNext);
         return e;
+    }
     else
         return nullptr; // Return nullptr of the enemy is not contained in the vector.
+
+}
+
+void Tile::fetchNext(Enemy *e) // Remove enemy from list and add to next tile's list.
+{
+    if (next != nullptr)
+        next->addEnemy(removeEnemy(e)); // Move enemy to the next tile in the shortest path.
 
 }
 

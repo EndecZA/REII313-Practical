@@ -53,13 +53,11 @@ public:
     static const int tileSize = 32;
     static const int mapWidth = 15;
     static const int mapHeight = 30;
+    static const int frameRate = 8; // Framerate in FPS.
 
-    // NOTE: mapGrid & barrierGridd will be removed here and only declared in drawMap().
-    int mapGrid[2*mapHeight][2*mapWidth];
-    int barrierGrid[2*mapHeight][2*mapWidth];
-
-    //  NB!! New grid to use for ALL pathfinding & containment etc...
-    Tile *tileGrid[2*mapHeight][2*mapWidth];
+//    int mapGrid[2*mapHeight][2*mapWidth];
+//    int barrierGrid[2*mapHeight][2*mapWidth];
+//    Tile *tileGrid[2*mapHeight][2*mapWidth];
 
 
 protected:
@@ -77,21 +75,25 @@ private slots:
 private:
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
-    QPixmap *tileset;
     QFile *mapFile;
 
     QVector<Enemy*> enemies;
     QVector<Tower*> towers;
-    QVector<QPointF> getSpawnPoints();
+//    QVector<QPointF> getSpawnPoints();
 
-    QTimer *waveTimer;
+    int mapGrid[2*mapHeight][2*mapWidth];
+    int barrierGrid[2*mapHeight][2*mapWidth];
+    Tile *tileGrid[2*mapHeight][2*mapWidth];
+
+
+//    QTimer *waveTimer;
     QTimer *updateTimer;
 
-    int baseRow, baseCol; // Indices for base position.
     int currentWave;
     int enemiesToSpawn;
     int enemiesPerWave;
     int bitcoinCount;
+    int baseRow, baseCol; // Indices for base position.
 
     QGraphicsTextItem *bitcoinText;
     QGraphicsRectItem *bitcoinBackground;
@@ -99,8 +101,8 @@ private:
     QGraphicsItemGroup *bitcoinGroup;
     PauseMenuDialog *pauseMenu;
 
-    void spawnEnemy(EnemyType type, const QPointF& pos);
-    void startNextWave();
+//    void spawnEnemy(EnemyType type, const QPointF& pos);
+//    void startNextWave();
     void updateGame();
     void pauseGame();
     void resumeGame();

@@ -41,9 +41,9 @@ private:
     void mousePressEvent(QGraphicsSceneMouseEvent*); // Handle click events.
 
 
-public slots: // TO DO!!
-//    Tile* fetchNext(); // Remove enemy from list and add to next tile's list.
-//    void Attack(int damage); // Attack enemies contained in tile.
+public slots:
+    void fetchNext(Enemy*); // Remove enemy from list and add to next tile's list.
+    void attackEnemy(int damage); // Attack enemies contained in tile.
 
 signals:
     void buildTower(towerType, int row, int col); // Send signal to build tower on the map.
