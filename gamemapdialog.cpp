@@ -46,6 +46,33 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         bitcoinCount = 200; // SUBJECT TO CHANGE!
         tileset = new QPixmap(":/resources/images/tileset.png");
 
+            bitcoinText = new QGraphicsTextItem(QString("Bitcoins: %1").arg(bitcoinCount));
+            bitcoinText->setFont(QFont("Arial", 10));
+            bitcoinText->setDefaultTextColor(Qt::white);
+
+            bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
+            bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
+            bitcoinBackground->setPen(Qt::NoPen);
+
+            QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
+            if (bitcoinPixmap.isNull()) {
+                bitcoinPixmap = QPixmap(32, 32);
+                bitcoinPixmap.fill(Qt::yellow);
+            }
+            bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
+
+            bitcoinGroup = new QGraphicsItemGroup();
+            bitcoinGroup->addToGroup(bitcoinBackground);
+            bitcoinGroup->addToGroup(bitcoinIcon);
+            bitcoinGroup->addToGroup(bitcoinText);
+            bitcoinGroup->setZValue(1000);
+
+            gameScene->addItem(bitcoinGroup);
+
+            bitcoinBackground->setPos(5, 5);
+            bitcoinIcon->setPos(10 + 5, 8);
+            bitcoinText->setPos(10 + 32 + 8, 10);
+
 //        QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
 //        debugRect->setZValue(10);
 
@@ -210,35 +237,6 @@ void GameMapDialog::drawMap()
         }
     }
     qDebug() << "Added tiles and barriers to GraphicsView.";
-
-    // Add currency display:
-    bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
-    bitcoinText->setFont(QFont("Arial", 10));
-    bitcoinText->setDefaultTextColor(Qt::white);
-
-    bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
-    bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
-    bitcoinBackground->setPen(Qt::NoPen);
-
-    QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
-    if (bitcoinPixmap.isNull()) {
-        qDebug() << "Failed to load bitcoin.png";
-        bitcoinPixmap = QPixmap(32, 32);
-        bitcoinPixmap.fill(Qt::yellow);
-    }
-    bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
-
-    bitcoinGroup = new QGraphicsItemGroup();
-    bitcoinGroup->addToGroup(bitcoinBackground);
-    bitcoinGroup->addToGroup(bitcoinIcon);
-    bitcoinGroup->addToGroup(bitcoinText);
-    bitcoinGroup->setZValue(bitcoinGroup->y() + bitcoinGroup->boundingRect().width());
-    gameScene->addItem(bitcoinGroup);
-
-    bitcoinBackground->setPos(5, 5);
-    bitcoinIcon->setPos(10 + 5, 8);
-    bitcoinText->setPos(10 + 32 + 8, 10);
-
 }
 
 void GameMapDialog::updateGame()
@@ -274,6 +272,7 @@ void GameMapDialog::updateBitcoinDisplay()
     qreal bgHeight = qMax(bitcoinText->boundingRect().height(), 32.0) + 8;
     bitcoinBackground->setRect(0, 0, bgWidth, bgHeight);
 }
+
 
 void GameMapDialog::buildTower(towerType type, int row, int col)
 {
@@ -611,18 +610,19 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
     out << "MapType: " << (int)mapType << "\n";
     out << "Difficulty: " << (int)gameDifficulty << "\n";
     out << "BitcoinCount: " << bitcoinCount << "\n";
+    loadedCount = bitcoinCount;
     out << "CurrentWave: " << currentWave << "\n";
 
-    out << "\nEnemies:";
-    for (Enemy* enemy : enemies) {
+    out << "\nEnemies:\n";
+    for (Enemy* enemy : qAsConst(enemies)) {
         out << (int)enemy->getType() << " "
             << enemy->pos().x() << " "
             << enemy->pos().y() << " "
             << enemy->getHealth() << "\n";
     }
 
-    out << "\nTowers:";
-    for (Tower* tower : towers) {
+    out << "\nTowers:\n";
+    for (Tower* tower : qAsConst(towers)) {
         int row = 0;
         int col = 0;
         bool found = false;
@@ -659,9 +659,6 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
     QString fileContent = file.readAll();
     qDebug() << "Loaded file content:\n" << fileContent; // Debugging line
 
-    // Clear current game state BEFORE loading new:
-    //clearGameState();
-
     // Split the content into lines
     QStringList lines = fileContent.split('\n', QString::SkipEmptyParts);
 
@@ -688,10 +685,10 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
                 qDebug() << "Invalid Difficulty format in line:" << line;
             }
         } else if (line.startsWith("BitcoinCount:")) {
-            bool ok;
-            bitcoinCount = line.section(':', 1).trimmed().toInt(&ok);
+            bool ok = true;
+          bitcoinCount = line.section(':', 1).trimmed().toInt(&ok);
             if (ok) {
-                qDebug() << "Loaded bitcoinCount:" << bitcoinCount;
+                qDebug() << "Loaded bitcoinCount:" << loadedCount;
             } else {
                 qDebug() << "Invalid BitcoinCount format in line:" << line;
                 bitcoinCount = 200; // Default value
@@ -783,6 +780,7 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
         if (row >= 0 && row < 2*mapHeight && col >= 0 && col < 2*mapWidth && tileGrid[row][col] && mapGrid[row][col] != 0) {
             Tower* tower = new Tower(ttype);
             tower->towerLevel = level;
+            tower->setZValue(1);
             towers.append(tower);
             tileGrid[row][col]->addTower(tower);
             gameScene->addItem(tower);
