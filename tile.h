@@ -19,6 +19,7 @@ public:
     int row, col;
     bool isBarrier;
     bool hasTower;
+    bool isBase;
     int dist; // Distance from current tile to base. Updated during flood filling algorithm.
     Tile *next; // Next tile in shortest path to the base.
     Tower *tower; // Pointer to tower object contained in tile.

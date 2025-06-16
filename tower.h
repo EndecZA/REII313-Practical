@@ -6,7 +6,7 @@
 #include <QWidget>
 #include <QPixmap>
 
-enum towerType {barricade, melee, archer, fire, wizard};
+enum towerType {barricade, melee, archer, fire, wizard, base};
 enum towerState {idle, attacking};
 
 class Tower : public QObject, public QGraphicsPixmapItem
@@ -26,6 +26,7 @@ private:
     static const int towerH = 130;
     int animationCounter; // Iterate over animation frames.
     int towerLevel;
+    int health; // Tower health: Only applicable to barricades and the base type.
     int damage;
     int fireRate; // Number of ticks that the tower waits before attacking next.
     int attackCounter; // Counter to keep track of the amount of received ticks.

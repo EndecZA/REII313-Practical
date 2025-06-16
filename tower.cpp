@@ -5,14 +5,17 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
     setScale(0.5); // Halve the size of each tower on the scene (from 70x130px to 35x65px).
     setOffset(-1, -towerH+24); // Adjust the datum for the tower.
     type = t;
+    health = -1; // Default: Tower is unkillable.
     QString path = "";
 
     switch (type) // Initialize base attributes:
     {
     // SUBJECT TO CHANGE!!
+        default:
+            [[fallthrough]];
         case barricade:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 50; damage = 0; fireRate = 0; range = 1;
+            cost = 50; damage = 0; fireRate = 0; range = 1; health = 50;
         break;
         case melee:
             path = ":/resources/images/towers/archer_tower.png";
@@ -30,9 +33,9 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
             path = ":/resources/images/towers/archer_tower.png";
             cost = 150; damage = 100; fireRate = 5; range = 10;
         break;
-        default:
+        case base:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 50; damage = 0; fireRate = 0; range = 1;
+            cost = 150; damage = 100; fireRate = 5; range = 10;
         break;
     }
     pixmap = new QPixmap(path);
@@ -61,6 +64,8 @@ int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance afte
         switch (type) // Update attributes:
         {
         // CODE HERE!
+            default:
+                [[fallthrough]];
             case barricade:
 
             break;
@@ -76,7 +81,7 @@ int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance afte
             case wizard:
 
             break;
-            default:
+            case base:
 
             break;
         }
@@ -87,7 +92,7 @@ int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance afte
 
 void Tower::Tick() // Tick function for tower.
 {
-    if (state == attacking)
+    if (state == attacking && type != base)
     {
         if (attackCounter%fireRate == 0)
         {

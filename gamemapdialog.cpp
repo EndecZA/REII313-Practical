@@ -39,36 +39,10 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         mapType = map1;
         isMultiplayer = false;
         bitcoinCount = 200; // SUBJECT TO CHANGE!
-
-        bitcoinText = new QGraphicsTextItem("Bitcoins: 0");
-        bitcoinText->setFont(QFont("Arial", 10));
-        bitcoinText->setDefaultTextColor(Qt::white);
-
-        bitcoinBackground = new QGraphicsRectItem(0, 0, 140, 40);
-        bitcoinBackground->setBrush(QBrush(QColor(0, 0, 0, 128)));
-        bitcoinBackground->setPen(Qt::NoPen);
-
-        QPixmap bitcoinPixmap(":/resources/images/bitcoin.png");
-        if (bitcoinPixmap.isNull()) {
-            qDebug() << "Failed to load bitcoin.png";
-            bitcoinPixmap = QPixmap(32, 32);
-            bitcoinPixmap.fill(Qt::yellow);
-        }
-        bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
-
-        bitcoinGroup = new QGraphicsItemGroup();
-        bitcoinGroup->addToGroup(bitcoinBackground);
-        bitcoinGroup->addToGroup(bitcoinIcon);
-        bitcoinGroup->addToGroup(bitcoinText);
-        bitcoinGroup->setZValue(bitcoinGroup->y() + bitcoinGroup->boundingRect().width());
-        gameScene->addItem(bitcoinGroup);
-
-        bitcoinBackground->setPos(5, 5);
-        bitcoinIcon->setPos(10 + 5, 8);
-        bitcoinText->setPos(10 + 32 + 8, 10);
+        baseRow = -1;
+        baseCol = -1;
 
         tileset = new QPixmap(":/resources/images/tileset.png");
-        drawMap();
 
 //        QGraphicsRectItem* debugRect = gameScene->addRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight, QPen(Qt::red));
 //        debugRect->setZValue(10);
@@ -84,7 +58,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         enemiesToSpawn = 0;
         waveTimer = new QTimer(this);
         connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
-        waveTimer->start(10000);
+//        waveTimer->start(10000);
 
         updateTimer = new QTimer(this);
         connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
@@ -220,6 +194,14 @@ void GameMapDialog::drawMap()
             if (mapGrid[i][j] != 0)
             {
                 tileGrid[i][j] = new Tile(mapGrid[i][j], barrierGrid[i][j], i, j);
+
+                if (tileGrid[i][j]->isBase)
+                {
+                    baseRow = i;
+                    baseCol = j;
+                    qDebug() << "Base tile located at: " << baseRow << ";" << baseCol;
+                }
+
                 gameScene->addItem(tileGrid[i][j]);
 
                 // Connect relevant signals to slots:
@@ -268,19 +250,29 @@ void GameMapDialog::drawMap()
 
 void GameMapDialog::floodFill()
 {
-    int destRow = 2*mapHeight-1;
-    int destCol = mapWidth - 1;
-    tileGrid[destRow][destCol]->isBarrier = false;
-    tileGrid[destRow][destCol]->hasTower = false;
-    tileGrid[destRow][destCol]->dist = 0; // Set destination distance to be zero.
+    if (baseRow == -1 || baseCol == -1)
+    {
+        qDebug() << "No base specified.";
+        return;
+    }
 
-//    Tower *tower = new Tower(archer); // NB! STILL NEED TO ADD BASE TOWER TYPE TO Tower Class!
-//    tileGrid[destRow][destCol]->addTower(tower);
-//    gameScene->addItem(tower);
-//    towers.append(tower);
+    // Reset all tiles:
+    for (int i=0; i<2*mapHeight; ++i)
+    {
+        for (int j=0; j<2*mapWidth; ++j)
+        {
+            tileGrid[i][j]->dist = -1;
+            tileGrid[i][j]->next = nullptr;
+        }
+    }
+
+    buildTower(base, baseRow, baseCol);
+
+    Tile* baseTile = tileGrid[baseRow][baseCol];
+    baseTile->dist = 0; // Set destination distance to be zero.
 
     QQueue<Tile*> queue;
-    queue.enqueue(tileGrid[destRow][destCol]);
+    queue.enqueue(baseTile);
     while (!queue.isEmpty())
     {
         Tile* tile = queue.dequeue();
@@ -288,19 +280,55 @@ void GameMapDialog::floodFill()
         int col = tile->col;
         int dist = tile->dist;
 
-        // Iterate over all adjacent tiles:
-        for (int i=-2; i<3; i += 2)
+        // Iterate over all eight adjacent tiles:
+        for (int i=0; i<8; ++i)
         {
-            for (int j=-2; j<3; j += 2)
+            int adjRow = row;
+            int adjCol = col;
+            switch (i)
             {
-                if (row+i >= 0 && row+i < 2*mapHeight && col+j >= 0 && col+j < 2*mapWidth)
-                if (i != 0 && j != 0 && tileGrid[row+i][col+j]->dist == -1)
-                if (!tileGrid[row+i][col+j]->isBarrier && !tileGrid[row+i][col+j]->hasTower)
-                {
-                    tileGrid[row+i][col+j]->dist = dist+1; // Update distance to destination.
-                    tileGrid[row+i][col+j]->next = tile; // Store pointer to next tile.
-                    queue.enqueue(tileGrid[row+i][col+j]); // Add adjacent tile to queue.
-                }
+                case 0: // N:
+                    adjRow -= 2;
+                break;
+                case 1: // W:
+                    adjCol -= 2;
+                break;
+                case 2: // S:
+                    adjRow += 2;
+                break;
+                case 3: // E:
+                    adjCol += 2;
+                break;
+                case 4: // NW:
+                    --adjRow;
+                    --adjCol;
+                break;
+                case 5: // SW:
+                    ++adjRow;
+                    --adjCol;
+                break;
+                case 6: // SE:
+                    ++adjRow;
+                    ++adjCol;
+                break;
+                case 7: // NE:
+                    --adjRow;
+                    ++adjCol;
+                break;
+            }
+
+            // Check whether the adjacent tile is valid and can be visited from the current node:
+            if (adjRow < 0 || adjRow >= 2*mapHeight || adjCol < 0 || adjCol >= 2*mapWidth)
+                break; // Break if the index is out of bounds.
+            else if(tileGrid[adjRow][adjCol]->isBarrier || tileGrid[adjRow][adjCol]->hasTower || tileGrid[adjRow][adjCol] == nullptr)
+                break; // Break if tile is unaccessable by enemies.
+            else if(tileGrid[adjRow][adjCol]->dist != -1)
+                break; // Break if tile has already been visited.
+            else
+            {
+                tileGrid[adjRow][adjCol]->dist = dist+1; // Update distance to destination.
+                tileGrid[adjRow][adjCol]->next = tile; // Store pointer to next tile.
+                queue.enqueue(tileGrid[adjRow][adjCol]); // Add adjacent tile to queue.
             }
         }
     }

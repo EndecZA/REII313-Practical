@@ -87,6 +87,7 @@ private:
     QTimer *waveTimer;
     QTimer *updateTimer;
 
+    int baseRow, baseCol; // Indices for base position.
     int currentWave;
     int enemiesToSpawn;
     int enemiesPerWave;
