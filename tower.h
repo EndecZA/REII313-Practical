@@ -1,12 +1,14 @@
 #ifndef TOWER_H
 #define TOWER_H
 
-#include <QObject>
 #include <QGraphicsPixmapItem>
+#include <QObject>
 #include <QWidget>
 #include <QPixmap>
 
-enum towerType {barricade, melee, archer, fire, wizard};
+class Tile;
+
+enum towerType {barricade, melee, archer, fire, wizard, base};
 enum towerState {idle, attacking};
 
 class Tower : public QObject, public QGraphicsPixmapItem
@@ -17,6 +19,9 @@ public:
     explicit Tower(towerType);
     int getCost();
     void Tick(); // Tick function for tower.
+    Tile *tile;
+
+private:
     QPixmap *pixmap;
     towerType type;
     towerState state;
@@ -24,6 +29,7 @@ public:
     static const int towerH = 130;
     int animationCounter; // Iterate over animation frames.
     int towerLevel;
+    int health; // Tower health: Only applicable to barricades and the base type.
     int damage;
     int fireRate; // Number of ticks that the tower waits before attacking next.
     int attackCounter; // Counter to keep track of the amount of received ticks.
@@ -32,6 +38,7 @@ public:
 
 public slots:
     int Upgrade(int balance); // Input: Currency balance. Output: Balance after upgrade.
+//    void Damage(int damage); // Damage tower.
 
 signals:
     void Attack(int damage); // Attack connected enemies.

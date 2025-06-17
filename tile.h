@@ -7,6 +7,7 @@
 #include <QVector>
 #include <QGraphicsSceneMouseEvent>
 #include <QMenu>
+#include <QDebug>
 
 #include "enemy.h"
 #include "tower.h"
@@ -19,7 +20,7 @@ public:
     int row, col;
     bool isBarrier;
     bool hasTower;
-    int weight; // Weight modifier for the type of terrain. 1 => normal terain, 2 => difficult terrain
+    bool isBase;
     int dist; // Distance from current tile to base. Updated during flood filling algorithm.
     Tile *next; // Next tile in shortest path to the base.
     Tower *tower; // Pointer to tower object contained in tile.
@@ -41,15 +42,15 @@ private:
     void mousePressEvent(QGraphicsSceneMouseEvent*); // Handle click events.
 
 
-public slots: // TO DO!!
-//    Tile* fetchNext(); // Remove enemy from list and add to next tile's list.
-//    void Attack(int damage); // Attack enemies contained in tile.
+public slots:
+    void fetchNext(Enemy*); // Remove enemy from list and add to next tile's list.
+    void killEnemy(Enemy*); // Delete enemy.
+//    void attackEnemy(int damage); // Attack enemies contained in tile.
 
 signals:
     void buildTower(towerType, int row, int col); // Send signal to build tower on the map.
     void sellTower(int row, int col); // Send signal to sell the tower.
     void upgradeTower(int row, int col); // Send signal to upgrade tower.
-    void flood(); // If the tile is modified, reflood shortest path.
 
 };
 
