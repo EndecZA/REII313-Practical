@@ -39,6 +39,7 @@ private:
     static const int mapHeight = 30;
     int pos[2];
     QGraphicsPixmapItem *barrier; // QGraphicsPixmapItem whose parent item is the Tile itself.
+    bool isSpawn;
 
     void mousePressEvent(QGraphicsSceneMouseEvent*); // Handle click events.
 

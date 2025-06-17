@@ -9,6 +9,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
     hasTower = false;
     isBarricade = false;
     isBase = false;
+    isSpawn = false;
     dist = -1; // Initialize distance to destination tile.
     next = nullptr;
     tower = nullptr;
@@ -50,6 +51,11 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
             rowPixmap = rand()%3 + 8;
             colPixmap = 0;
             isBase = true;
+        break;
+        case 7: // Enemy spawn point position: (Use magic sand)
+            rowPixmap = 1;
+            colPixmap = 0;
+            isSpawn = true;
         break;
     }
     rowPixmap *= tileSize;
@@ -126,7 +132,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
             barrier = nullptr;
         }
     }
-    else if (!isBase) // If the tile is a barrier:
+    else if (!isBase && !isSpawn) // If the tile is a barrier:
     {
         isBarrier = true;
         int rowPixmap = 0;
@@ -170,7 +176,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
 
 void Tile::addTower(Tower *t)
 {
-    if (!hasTower && !isBarrier && !isBarricade && t != nullptr)
+    if (!hasTower && !isBarrier && !isBarricade && !isSpawn && t != nullptr)
     {
         if (barrier != nullptr)
         {
@@ -277,7 +283,7 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
 {
     if (e->button() == Qt::RightButton)
     {
-        if (!isBarrier && !hasTower && !isBarricade && !isBase && enemies.isEmpty())
+        if (!isBarrier && !hasTower && !isBarricade && !isBase && !isSpawn && enemies.isEmpty())
         {
             QMenu *towerMenu = new QMenu();
             towerMenu->setStyleSheet(
