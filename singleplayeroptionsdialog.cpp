@@ -74,8 +74,9 @@ void SinglePlayerOptionsDialog::onNewGameClicked()
 
 void SinglePlayerOptionsDialog::onLoadGameClicked()
 {
-    QString filename = "savegame.txt"; // You can modify this to allow for different filenames if needed
-    emit loadGameRequested(filename); // Emit the signal with the filename
-    accept(); // Close the dialog
+    qDebug() << "Load Game button clicked.";
+    emit loadGameRequested("savegame.txt");
+    accept();
 }
+
 

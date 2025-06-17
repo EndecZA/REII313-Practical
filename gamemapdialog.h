@@ -54,7 +54,7 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
 
-private slots:
+public slots:
     void onResumeGame();
     void onSaveGame();
     void onExitGame();
@@ -66,6 +66,8 @@ private slots:
     void killEnemy(Enemy*);
     bool loadGameFromFile(const QString& filename);
     bool saveGameToFile(const QString& filename);
+    void cleanState();
+
 
 private:
     QGraphicsView *gameView;

@@ -49,12 +49,10 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     spawnRow = 0;
     spawnCol = mapWidth-1;
 
-    SinglePlayerOptionsDialog *singlePlayerOptions = new SinglePlayerOptionsDialog(this);
-    connect(singlePlayerOptions, &SinglePlayerOptionsDialog::loadGameRequested, this, &GameMapDialog::loadGameFromFile);
-
     currentWave = 0;
     enemiesPerWave = 5;
     enemiesToSpawn = 0;
+
 
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
@@ -576,6 +574,34 @@ void GameMapDialog::onSaveGame()
     resumeGame();
 }
 
+void GameMapDialog::cleanState()
+{
+    // Remove and delete all enemies
+    for (Enemy* enemy : qAsConst(enemies)) {
+        gameScene->removeItem(enemy);
+        delete enemy;
+    }
+    enemies.clear();
+
+    // Remove and delete all towers
+    for (Tower* tower : qAsConst(towers)) {
+        gameScene->removeItem(tower);
+        delete tower;
+    }
+    towers.clear();
+
+    // Remove and delete all tiles
+    for (int r = 0; r < 2 * mapHeight; ++r) {
+        for (int c = 0; c < 2 * mapWidth; ++c) {
+            if (tileGrid[r][c] != nullptr) {
+                gameScene->removeItem(tileGrid[r][c]);
+                delete tileGrid[r][c];
+                tileGrid[r][c] = nullptr;
+            }
+        }
+    }
+}
+
 
 bool GameMapDialog::saveGameToFile(const QString& filename)
 {
@@ -635,153 +661,121 @@ void GameMapDialog::onExitGame()
     close();
 }
 
-bool GameMapDialog::loadGameFromFile(const QString& filename)
-{
+bool GameMapDialog::loadGameFromFile(const QString& filename) {
     QString filePath = QCoreApplication::applicationDirPath() + "/saves/" + filename;
-    qDebug() << "File Path:" << filePath;
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "Cannot open file for loading:" << filePath;
         return false;
     }
 
-    // Read the entire file into a QString
     QString fileContent = file.readAll();
-    qDebug() << "Loaded file content:\n" << fileContent; // Debugging line
-
-    // Display the file content in a message box
-    QMessageBox::information(this, "Loaded Game Content", fileContent);
-
-    // Split the content into lines
     QStringList lines = fileContent.split('\n', QString::SkipEmptyParts);
 
-    // Read header lines for map/difficulty/bitcoin/wave:
+    // Initialize default values in case of partial file
+    mapType = map1;
+    gameDifficulty = medium;
+    bitcoinCount = 200;
+    savedBitcoinCount = 200;
+    currentWave = 0;
+
+    bool readingEnemies = false;
+    bool readingTowers = false;
+
     for (const QString& line : qAsConst(lines)) {
-        qDebug() << "Read line:" << line; // Debugging line
-        if (line.startsWith("MapType:")) {
-            bool ok;
-            int mt = line.section(':', 1).trimmed().toInt(&ok);
-            if (ok) {
-                mapType = static_cast<map>(mt);
-                qDebug() << "Loaded mapType:" << mapType;
-            } else {
-                qDebug() << "Invalid MapType format in line:" << line;
-            }
-        } else if (line.startsWith("Difficulty:")) {
-            bool ok;
-            int diff = line.section(':', 1).trimmed().toInt(&ok);
-            if (ok) {
-                gameDifficulty = static_cast<difficulty>(diff);
-                setDifficulty(diff); // Update enemiesPerWave
-                qDebug() << "Loaded difficulty:" << gameDifficulty;
-            } else {
-                qDebug() << "Invalid Difficulty format in line:" << line;
-            }
-        } else if (line.startsWith("BitcoinCount:")) {
-            bool ok = true;
-            int count = line.section(':', 1).trimmed().toInt(&ok);
-            if (ok) {
-                bitcoinCount = count; // Set bitcoinCount directly from loaded value
-                savedBitcoinCount = bitcoinCount; // Synchronize saved count
-                qDebug() << "Loaded bitcoinCount:" << bitcoinCount;
-            } else {
-                qDebug() << "Invalid BitcoinCount format in line:" << line;
-                bitcoinCount = 200; // Default value
-                savedBitcoinCount = 200; // Synchronize saved count
-            }
-        } else if (line.startsWith("CurrentWave:")) {
-            bool ok;
-            currentWave = line.section(':', 1).trimmed().toInt(&ok);
-            if (ok) {
-                qDebug() << "Loaded currentWave:" << currentWave;
-            } else {
-                qDebug() << "Invalid CurrentWave format in line:" << line;
-            }
-        } else if (line.startsWith("Enemies:")) {
-            break; // Proceed to enemies section
-        }
-    }
-
-    // Draw map using loaded mapType
-    drawMap();
-   // updateBitcoinDisplay(); // Update UI immediately
-
-    // Read enemies:
-    for (int i = 0; i < lines.size(); ++i) {
-        QString line = lines[i].trimmed();
-        qDebug() << "Enemy line:" << line; // Debugging line
-        if (line.isEmpty()) continue; // Skip empty lines
-        QStringList parts = line.split(' ', QString::SkipEmptyParts);
-
-        if (parts.size() < 4) {
-            qDebug() << "Invalid enemy line format:" << line;
-            continue;
-        }
-
-        bool ok;
-        EnemyType etype = static_cast<EnemyType>(parts[0].toInt(&ok));
-        if (!ok) continue;
-        float x = parts[1].toFloat(&ok);
-        if (!ok) continue;
-        float y = parts[2].toFloat(&ok);
-        if (!ok) continue;
-        int health = parts[3].toInt(&ok);
-        if (!ok) continue;
-
-        int gridX = static_cast<int>(x / tileSize);
-        int gridY = static_cast<int>(y / (tileSize / 2));
-        if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight && mapGrid[gridY][gridX] != 0) {
-            Enemy* enemy = new Enemy(etype);
-            enemy->setPos(x, y);
-            enemy->setHealth(health > 0 ? health : 1);
-            enemy->setJustLoaded(true);
-            enemies.append(enemy);
-            gameScene->addItem(enemy);
-            qDebug() << "Loaded enemy type" << etype << "at" << x << y << "health" << health;
-        } else {
-            qDebug() << "Invalid enemy position loaded at" << x << y;
-        }
-    }
-
-    // Read towers:
-    for (int i = 0; i < lines.size(); ++i) {
-        QString line = lines[i].trimmed();
-        qDebug() << "Tower line:" << line; // Debugging line
         if (line.isEmpty()) continue;
-        QStringList parts = line.split(' ', QString::SkipEmptyParts);
-        if (parts.size() < 4) {
-            qDebug() << "Invalid tower line format:" << line;
+        if (line.startsWith("Enemies:")) {
+            readingEnemies = true;
+            readingTowers = false;
+            continue;
+        }
+        if (line.startsWith("Towers:")) {
+            readingEnemies = false;
+            readingTowers = true;
             continue;
         }
 
-        bool ok;
-        towerType ttype = static_cast<towerType>(parts[0].toInt(&ok));
-        if (!ok) continue;
-        int row = parts[1].toInt(&ok);
-        if (!ok) continue;
-        int col = parts[2].toInt(&ok);
-        if (!ok) continue;
-        int level = parts[3].toInt(&ok);
-        if (!ok) continue;
+        if (!readingEnemies && !readingTowers) {
+            // Header parsing
+            if (line.startsWith("MapType:")) {
+                bool ok;
+                int mt = line.section(':', 1).trimmed().toInt(&ok);
+                if (ok && mt >= 0 && mt <= 2) mapType = static_cast<map>(mt);
+            } else if (line.startsWith("Difficulty:")) {
+                bool ok;
+                int diff = line.section(':', 1).trimmed().toInt(&ok);
+                if (ok && diff >= 0 && diff <= 2) {
+                    gameDifficulty = static_cast<difficulty>(diff);
+                    setDifficulty(diff);
+                }
+            } else if (line.startsWith("BitcoinCount:")) {
+                bool ok;
+                int count = line.section(':', 1).trimmed().toInt(&ok);
+                if (ok && count >= 0) {
+                    bitcoinCount = count;
+                    savedBitcoinCount = count;
+                }
+            } else if (line.startsWith("CurrentWave:")) {
+                bool ok;
+                currentWave = line.section(':', 1).trimmed().toInt(&ok);
+                if (!ok) currentWave = 0;
+            }
+        } else if (readingEnemies) {
+            QStringList parts = line.split(' ', QString::SkipEmptyParts);
+            if (parts.size() < 4) continue;
+            bool ok;
+            EnemyType etype = static_cast<EnemyType>(parts[0].toInt(&ok));
+            if (!ok) continue;
+            float x = parts[1].toFloat(&ok);
+            if (!ok) continue;
+            float y = parts[2].toFloat(&ok);
+            if (!ok) continue;
+            int health = parts[3].toInt(&ok);
+            if (!ok || health <= 0) health = 1;
 
-        if (row >= 0 && row < 2*mapHeight && col >= 0 && col < 2*mapWidth && tileGrid[row][col] && mapGrid[row][col] != 0) {
-            Tower* tower = new Tower(ttype);
-            tower->towerLevel = level; // Ensure tower level is set correctly
-            tower->setZValue(1);
-            towers.append(tower);
-            tileGrid[row][col]->addTower(tower);
-            gameScene->addItem(tower);
-            qDebug() << "Loaded tower type" << ttype << "at" << row << col << "level" << level;
-        } else {
-            qDebug() << "Invalid tower position loaded at row" << row << "col" << col;
+            int gridX = static_cast<int>(x / tileSize);
+            int gridY = static_cast<int>(y / (tileSize / 2));
+            if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight &&
+                tileGrid[gridY][gridX] != nullptr && mapGrid[gridY][gridX] != 0) {
+                Enemy* enemy = new Enemy(etype);
+                enemy->setPos(x, y);
+                enemy->setHealth(health);
+                enemy->setJustLoaded(true);
+                enemies.append(enemy);
+                gameScene->addItem(enemy);
+            }
+        } else if (readingTowers) {
+            QStringList parts = line.split(' ', QString::SkipEmptyParts);
+            if (parts.size() < 4) continue;
+            bool ok;
+            towerType ttype = static_cast<towerType>(parts[0].toInt(&ok));
+            if (!ok) continue;
+            int row = parts[1].toInt(&ok);
+            if (!ok) continue;
+            int col = parts[2].toInt(&ok);
+            if (!ok) continue;
+            int level = parts[3].toInt(&ok);
+            if (!ok || level < 1) level = 1;
+
+            if (row >= 0 && row < 2 * mapHeight && col >= 0 && col < 2 * mapWidth &&
+                tileGrid[row][col] != nullptr && mapGrid[row][col] != 0) {
+                Tower* tower = new Tower(ttype);
+                tower->towerLevel = level;
+                tower->setZValue(1);
+                towers.append(tower);
+                tileGrid[row][col]->addTower(tower);
+                gameScene->addItem(tower);
+            }
         }
     }
 
-    // Restart timers
-    waveTimer->start(10000);
-    updateTimer->start(125);
-    bitcoinCount = savedBitcoinCount; // Ensure bitcoin count is set correctly
-    updateBitcoinDisplay(); // Update UI immediately
+    cleanState();
+    drawMap();
+
+
+    if (updateTimer) updateTimer->start(125);
+    bitcoinCount = savedBitcoinCount;
+    updateBitcoinDisplay();
 
     file.close();
     return true;
