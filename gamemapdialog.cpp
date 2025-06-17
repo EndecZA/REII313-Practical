@@ -276,8 +276,6 @@ void GameMapDialog::floodFill()
         int col = tile->col;
         int dist = tile->dist;
 
-//        qDebug() << "Current tile in flood:" << row << ";" << col << "dist: " << dist;
-
         // Iterate over all eight adjacent tiles:
         for (int i=0; i<8; ++i)
         {
@@ -286,6 +284,7 @@ void GameMapDialog::floodFill()
             bool addToQueue = true;
             switch (i)
             {
+                // Prioritize straight moves:
                 case 0: // NW:
                     --adjRow;
                     --adjCol;
@@ -302,6 +301,7 @@ void GameMapDialog::floodFill()
                     --adjRow;
                     ++adjCol;
                 break;
+                // Handle diagonal movement:
                 case 4: // N:
                     adjRow -= 2;
 
@@ -425,7 +425,7 @@ void GameMapDialog::floodFill()
         }
     }
 
-    Enemy* enemy1 = new Enemy(Skeleton);
+    Enemy* enemy1 = new Enemy(Wizard);
     Tile *spawnTile = tileGrid[spawnRow][spawnCol];
     spawnTile->addEnemy(enemy1);
     connect(enemy1, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
@@ -479,6 +479,7 @@ void GameMapDialog::buildTower(towerType type, int row, int col)
         gameScene->addItem(tower);
 
         towers.append(tower);
+        connect(tower, &Tower::destroyTower, this, &GameMapDialog::destroyTower);
 
         bitcoinCount -= tower->getCost(); // Pay amount for tower.
 
@@ -508,6 +509,17 @@ void GameMapDialog::upgradeTower(int row, int col) // Upgrade tower at tile that
     Tower *tower = tileGrid[row][col]->tower;
     bitcoinCount = tower->Upgrade(bitcoinCount);
 
+}
+
+void GameMapDialog::destroyTower(int row, int col)
+{
+    Tower *tower = tileGrid[row][col]->removeTower();
+    if (tower != nullptr)
+    {
+        towers.removeOne(tower);
+        tower->deleteLater();
+        floodFill(); // Recalculate shortest paths.
+    }
 }
 
 // NB!! Reimplement code here!!

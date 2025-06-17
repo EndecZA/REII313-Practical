@@ -1,4 +1,5 @@
 #include "tower.h"
+#include "tile.h"
 
 Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 {
@@ -91,8 +92,27 @@ int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance afte
 
 }
 
+void Tower::Damage(int damage) // Damage tower.
+{
+    if (type == barricade || type == base)
+    {
+        health -= damage;
+        qDebug() << "Tower damaged:" << damage;
+        qDebug() << "Health:" << health;
+    }
+}
+
 void Tower::Tick() // Tick function for tower.
 {
+    if (type == barricade && health <= 0 && tile != nullptr)
+    {
+        emit destroyTower(tile->row, tile->col);
+    }
+    else if (type == base && health <= 0)
+    {
+        // Emit gameLost() signal here!!
+    }
+
     if (state == attacking && type != base)
     {
         if (attackCounter%fireRate == 0)

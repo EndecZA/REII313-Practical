@@ -7,6 +7,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
     col = c;
     isBarrier = false;
     hasTower = false;
+    isBarricade = false;
     isBase = false;
     dist = -1; // Initialize distance to destination tile.
     next = nullptr;
@@ -169,7 +170,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
 
 void Tile::addTower(Tower *t)
 {
-    if (!hasTower && !isBarrier && t != nullptr)
+    if (!hasTower && !isBarrier && !isBarricade && t != nullptr)
     {
         if (barrier != nullptr)
         {
@@ -177,8 +178,10 @@ void Tile::addTower(Tower *t)
             update();
         }
 
-        if (!isBase)
+        if (!isBase && t->type != barricade)
             hasTower = true;
+        else if (!isBase && t->type == barricade)
+            isBarricade = true;
 
         tower = t;
         tower->tile = this;
@@ -190,7 +193,7 @@ void Tile::addTower(Tower *t)
 
 Tower* Tile::removeTower() // Remove tower from tile.
 {
-    if (hasTower)
+    if (hasTower || isBarricade)
     {
         if (barrier != nullptr)
         {
@@ -199,6 +202,7 @@ Tower* Tile::removeTower() // Remove tower from tile.
         }
 
         hasTower = false;
+        isBarricade = false;
         Tower* output = tower;
         tower = nullptr;
 
@@ -216,7 +220,22 @@ void Tile::addEnemy(Enemy *e) // Add enemy to tile.
         enemies.append(e);
         connect(e, &Enemy::moveEnemy, this, &Tile::fetchNext);
         connect(e, &Enemy::killEnemy, this, &Tile::killEnemy);
-        e->setDest(pos[0], pos[1]);
+
+        e->setDest(pos[0], pos[1]); // Move enemy to this tile.
+
+        // Determine if enemy is in range of barricade or base:
+        int count = e->getRange();
+        Tile* nextTile = next;
+        while (count > 0 && e->getState() != Attacking && nextTile != nullptr)
+        {
+            if (next->isBarricade || next->isBase)
+            {
+                connect(e, &Enemy::Attack, nextTile->tower, &Tower::Damage);
+                e->setState(Attacking);
+            }
+            nextTile = nextTile->next;
+            --count;
+        }
     }
 
 }
@@ -247,7 +266,7 @@ void Tile::fetchNext(Enemy *e) // Remove enemy from list and add to next tile's 
     }
     else if (next != nullptr && next->isBase)
     {
-        e->setState(Attacking);
+        e->setState(Idle);
     }
     else
         qDebug() << "Tile::Unable to fetch next destination.";
@@ -258,7 +277,7 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
 {
     if (e->button() == Qt::RightButton)
     {
-        if (!isBarrier && !hasTower && !isBase && enemies.isEmpty())
+        if (!isBarrier && !hasTower && !isBarricade && !isBase && enemies.isEmpty())
         {
             QMenu *towerMenu = new QMenu();
             towerMenu->setStyleSheet(
@@ -295,7 +314,7 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
 
             towerMenu->popup(e->screenPos()); // Show menu at mouse position.
         }
-        else if (hasTower)
+        else if (hasTower || isBarricade)
         {
             QMenu *towerMenu = new QMenu();
             towerMenu->setStyleSheet(

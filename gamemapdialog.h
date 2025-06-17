@@ -63,6 +63,7 @@ private slots:
     void buildTower(towerType, int row, int col); // Build tower at tile that sent the signal.
     void sellTower(int row, int col); // Sell tower at tile that sent the signal.
     void upgradeTower(int row, int col); // Upgrade tower at tile that sent the signal.
+    void destroyTower(int row, int col);
     void killEnemy(Enemy*);
 
 private:
