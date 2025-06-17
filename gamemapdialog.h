@@ -51,7 +51,6 @@ public:
     static const int mapHeight = 30;
     static const int frameRate = 8; // Framerate in FPS.
 
-
 protected:
     void keyPressEvent(QKeyEvent *event) override;
 
@@ -59,12 +58,14 @@ private slots:
     void onResumeGame();
     void onSaveGame();
     void onExitGame();
-    void floodFill(); // Populate tiles with distance prameters and next tile pointers.
+    void floodFill(); // Populate tiles with distance parameters and next tile pointers.
     void buildTower(towerType, int row, int col); // Build tower at tile that sent the signal.
     void sellTower(int row, int col); // Sell tower at tile that sent the signal.
     void upgradeTower(int row, int col); // Upgrade tower at tile that sent the signal.
     void destroyTower(int row, int col);
     void killEnemy(Enemy*);
+    bool loadGameFromFile(const QString& filename);
+    bool saveGameToFile(const QString& filename);
 
 private:
     QGraphicsView *gameView;
@@ -78,9 +79,8 @@ private:
     int barrierGrid[2*mapHeight][2*mapWidth];
     Tile *tileGrid[2*mapHeight][2*mapWidth];
 
-
-//    QTimer *waveTimer;
     QTimer *updateTimer;
+    QTimer *waveTimer;
 
     int currentWave;
     int enemiesToSpawn;
@@ -95,8 +95,8 @@ private:
     QGraphicsItemGroup *bitcoinGroup;
     PauseMenuDialog *pauseMenu;
 
-//    void spawnEnemy(EnemyType type, const QPointF& pos);
-//    void startNextWave();
+    int savedBitcoinCount; // Added to keep track of saved bitcoin count
+
     void updateGame();
     void pauseGame();
     void resumeGame();

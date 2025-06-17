@@ -3,7 +3,7 @@
 
 const double PI = std::atan(1.0) * 4; // Calculate Pi.
 
-Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem()
+Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
 {
     setOffset(-spriteSize/2 + 16, -spriteSize/2 + 4); // Adjust the datum for the enemy.
     hide();
@@ -257,6 +257,14 @@ EnemyState Enemy::getState()
     return state;
 }
 
+void Enemy::setJustLoaded(bool value) {
+    justLoaded = value;
+}
+
+bool Enemy::isJustLoaded() const {
+    return justLoaded;
+}
+
 // Tick function for handling animation, movement and actions:
 void Enemy::Tick()
 {
@@ -282,7 +290,7 @@ void Enemy::Tick()
 
             if (moveProgress == 1)
             {
-                setState(Idle); // Wait untill enemy is successfully moved.
+                setState(Idle); // Wait until enemy is successfully moved.
                 moveProgress = 0; // Reset movement.
                 emit moveEnemy(this);
                 show();

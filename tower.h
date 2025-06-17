@@ -23,11 +23,6 @@ public:
     void Tick(); // Tick function for tower.
     Tile *tile;
 
-private:
-    QPixmap *pixmap;
-    towerState state;
-    static const int towerW = 70;
-    static const int towerH = 130;
     int animationCounter; // Iterate over animation frames.
     int towerLevel;
     int health; // Tower health: Only applicable to barricades and the base type.
@@ -37,6 +32,13 @@ private:
     int range;
     int cost; // Cost of construction or upgrade.
 
+
+private:
+    QPixmap *pixmap;
+    towerState state;
+    static const int towerW = 70;
+    static const int towerH = 130;
+
 public slots:
     int Upgrade(int balance); // Input: Currency balance. Output: Balance after upgrade.
     void Damage(int damage); // Damage tower.
@@ -44,7 +46,6 @@ public slots:
 signals:
     void Attack(int damage); // Attack connected enemies.
     void destroyTower(int row, int col);
-
 };
 
 #endif // TOWER_H
