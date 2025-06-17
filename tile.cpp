@@ -181,6 +181,7 @@ void Tile::addTower(Tower *t)
             hasTower = true;
 
         tower = t;
+        tower->tile = this;
         tower->setPos(pos[0], pos[1]);
         tower->setZValue(tower->y());
     }

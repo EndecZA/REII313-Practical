@@ -6,6 +6,8 @@
 #include <QWidget>
 #include <QPixmap>
 
+class Tile;
+
 enum towerType {barricade, melee, archer, fire, wizard, base};
 enum towerState {idle, attacking};
 
@@ -17,6 +19,7 @@ public:
     explicit Tower(towerType);
     int getCost();
     void Tick(); // Tick function for tower.
+    Tile *tile;
 
 private:
     QPixmap *pixmap;

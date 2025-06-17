@@ -43,6 +43,8 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         bitcoinCount = 200; // SUBJECT TO CHANGE!
         baseRow = -1;
         baseCol = -1;
+        spawnRow = 0;
+        spawnCol = mapWidth-1;
 
         currentWave = 0;
         enemiesPerWave = 5;
@@ -391,6 +393,27 @@ void GameMapDialog::floodFill()
         }
     }
 
+    // Ensure that enemies can allways reach the base:
+    Tile *tile = tileGrid[spawnRow][spawnCol];
+    if (tile == nullptr)
+    {
+        qDebug() << "Invalid spawn point chosen.";
+        return;
+    }
+    else
+    {
+        while (tile->next != nullptr)
+        {
+            tile = tile->next;
+        }
+        if (!tile->isBase && !towers.isEmpty())
+        {
+            qDebug() << "Base has been closed off. Selling last added tower.";
+            Tile *tile = towers.last()->tile;
+            sellTower(tile->row, tile->col);
+        }
+    }
+
     qDebug() << "Game map flooded.";
 
     // TEST ENEMY IMPLEMENTATION:
@@ -403,7 +426,7 @@ void GameMapDialog::floodFill()
     }
 
     Enemy* enemy1 = new Enemy(Skeleton);
-    Tile *spawnTile = tileGrid[0][mapWidth-1];
+    Tile *spawnTile = tileGrid[spawnRow][spawnCol];
     spawnTile->addEnemy(enemy1);
     connect(enemy1, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
     enemies.append(enemy1);

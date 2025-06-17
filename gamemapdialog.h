@@ -86,6 +86,7 @@ private:
     int enemiesPerWave;
     int bitcoinCount;
     int baseRow, baseCol; // Indices for base position.
+    int spawnRow, spawnCol; // Indices for spawn position.
 
     QGraphicsTextItem *bitcoinText;
     QGraphicsRectItem *bitcoinBackground;
