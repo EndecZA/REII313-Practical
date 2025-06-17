@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QWidget>
 #include <QPixmap>
+#include <QDebug>
 
 class Tile;
 
@@ -17,13 +18,13 @@ class Tower : public QObject, public QGraphicsPixmapItem
 
 public:
     explicit Tower(towerType);
+    towerType type;
     int getCost();
     void Tick(); // Tick function for tower.
     Tile *tile;
 
 private:
     QPixmap *pixmap;
-    towerType type;
     towerState state;
     static const int towerW = 70;
     static const int towerH = 130;
@@ -38,10 +39,11 @@ private:
 
 public slots:
     int Upgrade(int balance); // Input: Currency balance. Output: Balance after upgrade.
-//    void Damage(int damage); // Damage tower.
+    void Damage(int damage); // Damage tower.
 
 signals:
     void Attack(int damage); // Attack connected enemies.
+    void destroyTower(int row, int col);
 
 };
 

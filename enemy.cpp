@@ -68,7 +68,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem()
             break;
         }
         case Wizard: {
-            health = 80; damage = 3; walkSpeed = 1.5; attackSpeed = 1; attackRange = 5;
+            health = 80; damage = 3; walkSpeed = 1.5; attackSpeed = 1; attackRange = 10;
             bitcoinReward = 20;
 
             animationFrames[Moving] = 8;
@@ -116,7 +116,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem()
             break;
         }
         case Orcastor: {
-            health = 48; damage = 10; walkSpeed = 2; attackSpeed = 1; attackRange = 1;
+            health = 48; damage = 10; walkSpeed = 2; attackSpeed = 1; attackRange = 2;
             bitcoinReward = 10;
 
             animationFrames[Moving] = 8;
@@ -207,6 +207,11 @@ int Enemy::getDamage()
     return damage;
 }
 
+int Enemy::getRange()
+{
+    return attackRange;
+}
+
 EnemyType Enemy::getType()
 {
     return type;
@@ -220,8 +225,8 @@ int Enemy::getBitcoinReward()
 void Enemy::takeDamage(int damage)
 {
     setState(Damaged);
-
     health -= damage;
+
     if (health <= 0) {
         setState(Dying);
     }
@@ -233,7 +238,7 @@ void Enemy::setState(EnemyState newState)
 
     if (prevState != newState) {
         state = newState;
-        animationCounter[state] = 1;
+        animationCounter[state] = 1; // Reset animation.
         attackCooldown = 1; // Reset attack cooldown.
 
         if (state != Moving)
@@ -297,7 +302,7 @@ void Enemy::Tick()
             if (attackCooldown == 0)
             {
                 attackCooldown = 1; // Reset attack cooldown.
-                emit Attack(this);
+                emit Attack(damage); // Emit attacking signal.
             }
             else
                 attackCooldown -= attackSpeed/frameRate; // Enemy will attack attackSpeed times in one second.

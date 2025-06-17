@@ -7,6 +7,8 @@
 #include <QPixmap>
 #include <cmath>
 
+#include "tower.h"
+
 class GameMapDialog;
 
 enum EnemyType {Skeleton, Skeleton_Archer, Armoured_Skeleton, Wizard, Orc, Armoured_Orc, Elite_Orc, Orcastor, Knight, Knight_Templar, Werebear, Cleric };
@@ -23,6 +25,7 @@ public:
     EnemyState getState();
     int getHealth();
     int getDamage();
+    int getRange();
     int getBitcoinReward();
 
     void setDest(int x, int y); // Set new destination position.
@@ -56,7 +59,7 @@ private:
     bool isMirrored;
 
 signals:
-    void Attack(Enemy*); // Attack any towers that are in range.
+    void Attack(int damage); // Attack any towers that are in range.
     void moveEnemy(Enemy*); // Move enemy to new tile.
     void killEnemy(Enemy*); // Signal to remove enemy from the game map.
 

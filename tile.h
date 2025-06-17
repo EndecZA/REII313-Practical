@@ -19,6 +19,7 @@ public:
     explicit Tile(int tileType, int barrierType, int row, int col);
     int row, col;
     bool isBarrier;
+    bool isBarricade;
     bool hasTower;
     bool isBase;
     int dist; // Distance from current tile to base. Updated during flood filling algorithm.
