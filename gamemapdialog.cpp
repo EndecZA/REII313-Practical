@@ -31,7 +31,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         gameView->setRenderHint(QPainter::Antialiasing);
         gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-        int scale = 1920/(tileSize*mapWidth);
+        float scale = 1920/(tileSize*(mapWidth+0.5));
         gameView->scale(scale, scale);
         gameView->centerOn(1920/2, 0);
         gameView->show();
@@ -40,11 +40,9 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         gameDifficulty = medium;
         mapType = map1;
         isMultiplayer = false;
-        bitcoinCount = 200; // SUBJECT TO CHANGE!
+        bitcoinCount = 500; // SUBJECT TO CHANGE!
         baseRow = -1;
         baseCol = -1;
-        spawnRow = 0;
-        spawnCol = mapWidth-1;
 
         currentWave = 0;
         enemiesPerWave = 5;
@@ -53,11 +51,9 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         // NOTE: Reimplement!
 //        waveTimer = new QTimer(this);
 //        connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
-//        waveTimer->start(10000);
 
         updateTimer = new QTimer(this);
         connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
-        updateTimer->start(1000/frameRate);
 
         pauseMenu = nullptr;
 
@@ -186,7 +182,14 @@ void GameMapDialog::drawMap()
         {
             if (mapGrid[i][j] != 0)
             {
-                tileGrid[i][j] = new Tile(mapGrid[i][j], barrierGrid[i][j], i, j);
+                if (mapGrid[i][j] == 7)
+                {
+                    tileGrid[i][j] = new Tile(7, 0, i, j); // Force tile to not be a barrier.
+                    spawnPoints.enqueue(tileGrid[i][j]);
+                    qDebug() << "Spawn tile located at: " << i << ";" << j;
+                }
+                else
+                    tileGrid[i][j] = new Tile(mapGrid[i][j], barrierGrid[i][j], i, j); // Add tile normally.
 
                 if (tileGrid[i][j]->isBase)
                 {
@@ -239,8 +242,19 @@ void GameMapDialog::drawMap()
     bitcoinText->setPos(10 + 32 + 8, 10);
 
     // Build base tower and run flooding algorithm:
-    if (baseRow != -1 && baseCol != -1)
+    if (baseRow != -1 && baseCol != -1 && !spawnPoints.isEmpty()) // Map read successfully.
+    {
         buildTower(base, baseRow, baseCol);
+
+        // Only start game if a valid map was read:
+//        waveTimer->start(10000);
+        updateTimer->start(1000/frameRate);
+    }
+    else
+    {
+        qDebug() << "No spawn points specified or base position has been omitted.";
+    }
+
 }
 
 void GameMapDialog::floodFill()
@@ -393,8 +407,8 @@ void GameMapDialog::floodFill()
         }
     }
 
-    // Ensure that enemies can allways reach the base:
-    Tile *tile = tileGrid[spawnRow][spawnCol];
+    // Ensure that enemies can allways reach the base:  
+    Tile *tile = spawnPoints.at(0);
     if (tile == nullptr)
     {
         qDebug() << "Invalid spawn point chosen.";
@@ -416,7 +430,7 @@ void GameMapDialog::floodFill()
 
     qDebug() << "Game map flooded.";
 
-    // TEST ENEMY IMPLEMENTATION:
+    // TEST ENEMY IMPLEMENTATION: TEMP!!
     if (!enemies.isEmpty())
     {
         for (Enemy* &enemy : enemies)
@@ -426,17 +440,20 @@ void GameMapDialog::floodFill()
     }
 
     Enemy* enemy1 = new Enemy(Wizard);
-    Tile *spawnTile = tileGrid[spawnRow][spawnCol];
+    Tile *spawnTile = spawnPoints.dequeue(); // Note: pop tile from queue and then queue it again to cycle over spawn points.
     spawnTile->addEnemy(enemy1);
     connect(enemy1, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
     enemies.append(enemy1);
     gameScene->addItem(enemy1);
+    spawnPoints.enqueue(spawnTile);
 
+    spawnTile = spawnPoints.dequeue();
     Enemy* enemy2 = new Enemy(Orcastor);
     spawnTile->addEnemy(enemy2);
     connect(enemy2, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
     enemies.append(enemy2);
     gameScene->addItem(enemy2);
+    spawnPoints.enqueue(spawnTile);
 
 }
 

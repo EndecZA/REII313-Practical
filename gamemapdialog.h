@@ -77,6 +77,7 @@ private:
     int mapGrid[2*mapHeight][2*mapWidth];
     int barrierGrid[2*mapHeight][2*mapWidth];
     Tile *tileGrid[2*mapHeight][2*mapWidth];
+    QQueue<Tile*> spawnPoints; // Queue used to cycle the spawning of enemies.
 
 
 //    QTimer *waveTimer;
@@ -87,7 +88,7 @@ private:
     int enemiesPerWave;
     int bitcoinCount;
     int baseRow, baseCol; // Indices for base position.
-    int spawnRow, spawnCol; // Indices for spawn position.
+//    int spawnRow, spawnCol; // Indices for spawn position.
 
     QGraphicsTextItem *bitcoinText;
     QGraphicsRectItem *bitcoinBackground;

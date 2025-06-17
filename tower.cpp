@@ -97,8 +97,6 @@ void Tower::Damage(int damage) // Damage tower.
     if (type == barricade || type == base)
     {
         health -= damage;
-        qDebug() << "Tower damaged:" << damage;
-        qDebug() << "Health:" << health;
     }
 }
 
