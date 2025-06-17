@@ -47,6 +47,8 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         currentWave = 0;
         enemiesPerWave = 5;
         enemiesToSpawn = 0;
+
+        // NOTE: Reimplement!
 //        waveTimer = new QTimer(this);
 //        connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
 //        waveTimer->start(10000);
@@ -56,6 +58,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         updateTimer->start(1000/frameRate);
 
         pauseMenu = nullptr;
+
 }
 
 void GameMapDialog::setDifficulty(int dif)
@@ -271,11 +274,14 @@ void GameMapDialog::floodFill()
         int col = tile->col;
         int dist = tile->dist;
 
+//        qDebug() << "Current tile in flood:" << row << ";" << col << "dist: " << dist;
+
         // Iterate over all eight adjacent tiles:
         for (int i=0; i<8; ++i)
         {
             int adjRow = row;
             int adjCol = col;
+            bool addToQueue = true;
             switch (i)
             {
                 case 0: // NW:
@@ -296,26 +302,87 @@ void GameMapDialog::floodFill()
                 break;
                 case 4: // N:
                     adjRow -= 2;
+
+                    // Don't allow diagonal move if a barrier is in the way:
+                    if (adjRow+1 >=0 && adjRow+1 < 2*mapHeight && adjCol-1 >= 0 && adjCol-1 < 2*mapWidth)
+                    {
+                        Tile *tile = tileGrid[adjRow+1][adjCol-1];
+                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                            addToQueue = false;
+                    }
+
+                    if (adjRow+1 >=0 && adjRow+1 < 2*mapHeight && adjCol+1 >= 0 && adjCol+1 < 2*mapWidth)
+                    {
+                        Tile *tile = tileGrid[adjRow+1][adjCol+1];
+                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                            addToQueue = false;
+                    }
                 break;
                 case 5: // W:
                     adjCol -= 2;
+
+                    // Don't allow diagonal move if a barrier is in the way:
+                    if (adjRow-1 >=0 && adjRow-1 < 2*mapHeight && adjCol+1 >= 0 && adjCol+1 < 2*mapWidth)
+                    {
+                        Tile *tile = tileGrid[adjRow-1][adjCol+1];
+                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                            addToQueue = false;
+                    }
+
+                    if (adjRow+1 >=0 && adjRow+1 < 2*mapHeight && adjCol+1 >= 0 && adjCol+1 < 2*mapWidth)
+                    {
+                        Tile *tile = tileGrid[adjRow+1][adjCol+1];
+                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                            addToQueue = false;
+                    }
                 break;
                 case 6: // S:
                     adjRow += 2;
+
+                    // Don't allow diagonal move if a barrier is in the way:
+                    if (adjRow-1 >=0 && adjRow-1 < 2*mapHeight && adjCol-1 >= 0 && adjCol-1 < 2*mapWidth)
+                    {
+                        Tile *tile = tileGrid[adjRow-1][adjCol-1];
+                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                            addToQueue = false;
+                    }
+
+                    if (adjRow-1 >=0 && adjRow-1 < 2*mapHeight && adjCol+1 >= 0 && adjCol+1 < 2*mapWidth)
+                    {
+                        Tile *tile = tileGrid[adjRow-1][adjCol+1];
+                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                            addToQueue = false;
+                    }
                 break;
                 case 7: // E:
                     adjCol += 2;
+
+                    // Don't allow diagonal move if a barrier is in the way:
+                    if (adjRow-1 >=0 && adjRow-1 < 2*mapHeight && adjCol-1 >= 0 && adjCol-1 < 2*mapWidth)
+                    {
+                        Tile *tile = tileGrid[adjRow-1][adjCol-1];
+                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                            addToQueue = false;
+                    }
+
+                    if (adjRow+1 >=0 && adjRow+1 < 2*mapHeight && adjCol-1 >= 0 && adjCol-1 < 2*mapWidth)
+                    {
+                        Tile *tile = tileGrid[adjRow+1][adjCol-1];
+                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                            addToQueue = false;
+                    }
                 break;
             }
 
             // Check whether the adjacent tile is valid and can be visited from the current node:
             if (adjRow < 0 || adjRow >= 2*mapHeight || adjCol < 0 || adjCol >= 2*mapWidth)
-                break; // Break if the index is out of bounds.
-            else if(tileGrid[adjRow][adjCol]->isBarrier || tileGrid[adjRow][adjCol]->hasTower || tileGrid[adjRow][adjCol] == nullptr)
-                break; // Break if tile is unaccessable by enemies.
-            else if(tileGrid[adjRow][adjCol]->dist != -1)
-                break; // Break if tile has already been visited.
-            else
+                addToQueue = false; // Break if the index is out of bounds.
+            else if (tileGrid[adjRow][adjCol] == nullptr || tileGrid[adjRow][adjCol]->isBarrier || tileGrid[adjRow][adjCol]->hasTower)
+                addToQueue = false; // Break if tile is unaccessable by enemies.
+            else if (tileGrid[adjRow][adjCol]->dist != -1)
+                addToQueue = false; // Break if tile has already been visited.
+
+            if (addToQueue)
             {
                 tileGrid[adjRow][adjCol]->dist = dist+1; // Update distance to destination.
                 tileGrid[adjRow][adjCol]->next = tile; // Store pointer to next tile.
@@ -325,6 +392,29 @@ void GameMapDialog::floodFill()
     }
 
     qDebug() << "Game map flooded.";
+
+    // TEST ENEMY IMPLEMENTATION:
+    if (!enemies.isEmpty())
+    {
+        for (Enemy* &enemy : enemies)
+        {
+            enemy->setState(Dying);
+        }
+    }
+
+    Enemy* enemy1 = new Enemy(Skeleton);
+    Tile *spawnTile = tileGrid[0][mapWidth-1];
+    spawnTile->addEnemy(enemy1);
+    connect(enemy1, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
+    enemies.append(enemy1);
+    gameScene->addItem(enemy1);
+
+    Enemy* enemy2 = new Enemy(Orcastor);
+    spawnTile->addEnemy(enemy2);
+    connect(enemy2, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
+    enemies.append(enemy2);
+    gameScene->addItem(enemy2);
+
 }
 
 void GameMapDialog::updateGame()
@@ -333,6 +423,8 @@ void GameMapDialog::updateGame()
     for (Enemy* &enemy : enemies)
     {
         enemy->Tick();
+        if (enemy->getState() == Idle)
+            enemy->setState(Moving);
     }
 
     // Update state of all towers:
@@ -394,6 +486,8 @@ void GameMapDialog::upgradeTower(int row, int col) // Upgrade tower at tile that
     bitcoinCount = tower->Upgrade(bitcoinCount);
 
 }
+
+// NB!! Reimplement code here!!
 
 //void GameMapDialog::spawnEnemy(EnemyType type, const QPointF& pos)
 //{
@@ -459,6 +553,12 @@ void GameMapDialog::upgradeTower(int row, int col) // Upgrade tower at tile that
 //    });
 //    spawnTimer->start(spawnInterval);
 //}
+
+void GameMapDialog::killEnemy(Enemy *e)
+{
+    enemies.removeOne(e);
+    e->deleteLater();
+}
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)
 {

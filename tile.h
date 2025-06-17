@@ -7,6 +7,7 @@
 #include <QVector>
 #include <QGraphicsSceneMouseEvent>
 #include <QMenu>
+#include <QDebug>
 
 #include "enemy.h"
 #include "tower.h"
@@ -43,7 +44,8 @@ private:
 
 public slots:
     void fetchNext(Enemy*); // Remove enemy from list and add to next tile's list.
-    void attackEnemy(int damage); // Attack enemies contained in tile.
+    void killEnemy(Enemy*); // Delete enemy.
+//    void attackEnemy(int damage); // Attack enemies contained in tile.
 
 signals:
     void buildTower(towerType, int row, int col); // Send signal to build tower on the map.

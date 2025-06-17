@@ -2,6 +2,8 @@
 #define ENEMY_H
 
 #include <QGraphicsPixmapItem>
+#include <QWidget>
+#include <QObject>
 #include <QPixmap>
 #include <cmath>
 
@@ -13,12 +15,12 @@ enum EnemyState {Moving, Attacking, Damaged, Dying, Idle};
 class Enemy : public QObject, public QGraphicsPixmapItem
 {
     Q_OBJECT
-
 public:
     Enemy(EnemyType type);
 
     EnemyType getType();
     void setState(EnemyState state);
+    EnemyState getState();
     int getHealth();
     int getDamage();
     int getBitcoinReward();
@@ -45,13 +47,14 @@ private:
     float attackSpeed; // Attacking speed of enemy in attacks/second.
     int attackRange;
     int bitcoinReward;
+    bool isMirrored;
 
 signals:
     void Attack(Enemy*); // Attack any towers that are in range.
     void moveEnemy(Enemy*); // Move enemy to new tile.
     void killEnemy(Enemy*); // Signal to remove enemy from the game map.
 
-private slots:
+public slots:
     void takeDamage(int damage);
 
 };

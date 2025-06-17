@@ -214,9 +214,15 @@ void Tile::addEnemy(Enemy *e) // Add enemy to tile.
     {
         enemies.append(e);
         connect(e, &Enemy::moveEnemy, this, &Tile::fetchNext);
+        connect(e, &Enemy::killEnemy, this, &Tile::killEnemy);
         e->setDest(pos[0], pos[1]);
     }
 
+}
+
+void Tile::killEnemy(Enemy *e)
+{
+    removeEnemy(e);
 }
 
 Enemy* Tile::removeEnemy(Enemy *e) // Remove enemy from tile.
@@ -224,6 +230,7 @@ Enemy* Tile::removeEnemy(Enemy *e) // Remove enemy from tile.
     if (enemies.removeOne(e))
     {
         disconnect(e, &Enemy::moveEnemy, this, &Tile::fetchNext);
+        disconnect(e, &Enemy::killEnemy, this, &Tile::killEnemy);
         return e;
     }
     else
@@ -233,8 +240,16 @@ Enemy* Tile::removeEnemy(Enemy *e) // Remove enemy from tile.
 
 void Tile::fetchNext(Enemy *e) // Remove enemy from list and add to next tile's list.
 {
-    if (next != nullptr)
+    if (next != nullptr && !next->isBase && !next->isBarrier)
+    {
         next->addEnemy(removeEnemy(e)); // Move enemy to the next tile in the shortest path.
+    }
+    else if (next != nullptr && next->isBase)
+    {
+        e->setState(Attacking);
+    }
+    else
+        qDebug() << "Tile::Unable to fetch next destination.";
 
 }
 

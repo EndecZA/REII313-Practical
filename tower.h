@@ -35,7 +35,7 @@ private:
 
 public slots:
     int Upgrade(int balance); // Input: Currency balance. Output: Balance after upgrade.
-    void Damage(int damage); // Damage tower.
+//    void Damage(int damage); // Damage tower.
 
 signals:
     void Attack(int damage); // Attack connected enemies.

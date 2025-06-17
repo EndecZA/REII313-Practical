@@ -1,20 +1,20 @@
 #include "enemy.h"
-#include "gamemapdialog.h"
 #include <QDebug>
-#include <QtMath>
 
 const double PI = std::atan(1.0) * 4; // Calculate Pi.
 
-Enemy::Enemy(EnemyType type) : QObject(), QGraphicsPixmapItem()
+Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem()
 {
-    setScale(0.4); // Reduce the size of each enemy on the scene (from 100x100px to 40x40px).
-    setOffset(0, -0.4*spriteSize + 8); // Adjust the datum for the enemy.
+    setOffset(-spriteSize/2 + 16, -spriteSize/2 + 4); // Adjust the datum for the enemy.
+    hide();
 
     // Initialize Parameters:
+    type = t;
     source[0] = 0;
     source[1] = 0;
     dest[0] = 0;
     dest[1] = 0;
+    isMirrored = false;
 
     moveProgress = 0;
     attackCooldown = 1;
@@ -68,7 +68,7 @@ Enemy::Enemy(EnemyType type) : QObject(), QGraphicsPixmapItem()
             break;
         }
         case Wizard: {
-            health = 80; damage = 3; walkSpeed = 1.2; attackSpeed = 1; attackRange = 5;
+            health = 80; damage = 3; walkSpeed = 1.5; attackSpeed = 1; attackRange = 5;
             bitcoinReward = 20;
 
             animationFrames[Moving] = 8;
@@ -104,7 +104,7 @@ Enemy::Enemy(EnemyType type) : QObject(), QGraphicsPixmapItem()
             break;
         }
         case Elite_Orc: {
-            health = 480; damage = 20; walkSpeed = 1.2; attackSpeed = 1; attackRange = 1;
+            health = 480; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 50;
 
             animationFrames[Moving] = 8;
@@ -116,7 +116,7 @@ Enemy::Enemy(EnemyType type) : QObject(), QGraphicsPixmapItem()
             break;
         }
         case Orcastor: {
-            health = 48; damage = 10; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
+            health = 48; damage = 10; walkSpeed = 2; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 10;
 
             animationFrames[Moving] = 8;
@@ -152,7 +152,7 @@ Enemy::Enemy(EnemyType type) : QObject(), QGraphicsPixmapItem()
             break;
         }
         case Werebear: {
-            health = 280; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
+            health = 280; damage = 20; walkSpeed = 2; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 35;
 
             animationFrames[Moving] = 8;
@@ -164,7 +164,7 @@ Enemy::Enemy(EnemyType type) : QObject(), QGraphicsPixmapItem()
             break;
         }
         case Cleric: {
-            health = 560; damage = 20; walkSpeed = 1.2; attackSpeed = 1; attackRange = 5;
+            health = 560; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 5;
             bitcoinReward = 40;
 
             animationFrames[Moving] = 8;
@@ -191,6 +191,8 @@ Enemy::Enemy(EnemyType type) : QObject(), QGraphicsPixmapItem()
         fallback.fill(Qt::red);
         setPixmap(fallback);
     }
+
+    setTransformOriginPoint(boundingRect().center());
 
     qDebug() << "Enemy type" << type << "created.";
 }
@@ -233,7 +235,21 @@ void Enemy::setState(EnemyState newState)
         state = newState;
         animationCounter[state] = 1;
         attackCooldown = 1; // Reset attack cooldown.
+
+        if (state != Moving)
+        {
+            // Snap to grid:
+            source[0] = dest[0];
+            source[1] = dest[1];
+            setPos(source[0], source[1]);
+            setZValue(y() + 8);
+        }
     }
+}
+
+EnemyState Enemy::getState()
+{
+    return state;
 }
 
 // Tick function for handling animation, movement and actions:
@@ -257,12 +273,14 @@ void Enemy::Tick()
             float x = (1-f)*source[0] + f*dest[0];
             float y = (1-f)*source[1] + f*dest[1];
             setPos(x, y);
-            setZValue(y); // Ensure that enemy is drawn at correct ZValue.
+            setZValue(y + 8); // Ensure that enemy is drawn at correct ZValue.
 
             if (moveProgress == 1)
             {
+                setState(Idle); // Wait untill enemy is successfully moved.
                 moveProgress = 0; // Reset movement.
                 emit moveEnemy(this);
+                show();
             }
             else
                 moveProgress += walkSpeed/frameRate; // Enemy will move by walkSpeed amount of tiles in one second.
@@ -294,7 +312,10 @@ void Enemy::Tick()
     }
 
     // Set pixmap based on animation frame:
-    setPixmap(spriteSheet->copy(col*spriteSize, row*spriteSize, spriteSize, spriteSize));
+    QPixmap pixmap = spriteSheet->copy(col*spriteSize, row*spriteSize, spriteSize, spriteSize);
+    if (isMirrored)
+        pixmap = QPixmap::fromImage(pixmap.toImage().mirrored(true, false)); // Mirror pixmap.
+    setPixmap(pixmap);
 
     if (animationCounter[state] % animationFrames[state] == 0) // Reached end of animation.
     {
@@ -312,12 +333,16 @@ void Enemy::Tick()
         }
     }
     ++animationCounter[state]; // Cycle animation.
-
-    qDebug() << "Enemy type: " << type << "with state: " << state << " at " << pos() << " zValue " << zValue() << " moving to point: " << dest << " from: " << source;
 }
 
 void Enemy::setDest(int x, int y) // Set new destination position.
 {
+    // Correctly orient enemy:
+    if (dest[0] > x)
+        isMirrored = true;
+    else if (dest[0] < x)
+        isMirrored = false;
+
     // Make the old destination the new source:
     source[0] = dest[0];
     source[1] = dest[1];
@@ -325,4 +350,6 @@ void Enemy::setDest(int x, int y) // Set new destination position.
     // Add new destination:
     dest[0] = x;
     dest[1] = y;
+
+    setState(Moving);
 }
