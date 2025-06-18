@@ -223,7 +223,7 @@ void Tile::addEnemy(Enemy *e) // Add enemy to tile.
 {
     if (e != nullptr)
     {
-        enemies.append(e);
+        enemies.append(e); // Add enemy to the vector
         connect(e, &Enemy::moveEnemy, this, &Tile::fetchNext);
         connect(e, &Enemy::killEnemy, this, &Tile::killEnemy);
 
@@ -243,7 +243,6 @@ void Tile::addEnemy(Enemy *e) // Add enemy to tile.
             --count;
         }
     }
-
 }
 
 void Tile::damageEnemy(int damage, int piercing, Tower* tower) // Damage enemies at tile.

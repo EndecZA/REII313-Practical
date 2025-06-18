@@ -44,7 +44,13 @@ public:
     int getMap();
     bool getMultiplayer();
     void drawMap();
+
     void updateBitcoinDisplay();
+    void updateWaveDisplay();
+
+
+    void spawnWave();
+
     enum difficulty gameDifficulty;
     enum map mapType;
     bool isMultiplayer;
@@ -76,6 +82,7 @@ private:
 
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
+    QGraphicsTextItem *waveText;
     QFile *mapFile;
 
     QVector<Enemy*> enemies;
@@ -92,7 +99,7 @@ private:
 
     int currentWave;
     int enemiesToSpawn;
-    int enemiesPerWave;
+    int totalEnemiesPerWave;
     int bitcoinCount;
     int baseRow, baseCol; // Indices for base position.
 
@@ -102,7 +109,7 @@ private:
     QGraphicsItemGroup *bitcoinGroup;
     PauseMenuDialog *pauseMenu;
 
-    int savedBitcoinCount; // Added to keep track of saved bitcoin count
+    int savedBitcoinCount; // Added to keep track of saved bitcoin
 
     void updateGame();
     void tickEnemies();
