@@ -33,7 +33,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameView->setRenderHint(QPainter::Antialiasing);
     gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    int scale = 1920/(tileSize*mapWidth);
+    float scale = 1920/(tileSize*mapWidth);
     gameView->scale(scale, scale);
     gameView->centerOn(1920/2, 0);
     gameView->show();
@@ -42,49 +42,26 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameDifficulty = medium;
     mapType = map1;
     isMultiplayer = false;
-    bitcoinCount = 200; // SUBJECT TO CHANGE!
+    bitcoinCount = 500; // SUBJECT TO CHANGE!
     baseRow = -1;
     baseCol = -1;
-    spawnRow = 0;
-    spawnCol = mapWidth-1;
-        gameView = new QGraphicsView(gameScene, this);
-        gameView->setFixedSize(1920, 1080);
-        gameView->setRenderHint(QPainter::Antialiasing);
-        gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-        gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-        float scale = 1920/(tileSize*(mapWidth+0.5));
-        gameView->scale(scale, scale);
-        gameView->centerOn(1920/2, 0);
-        gameView->show();
-
-        // Initialize game attributes:
-        gameDifficulty = medium;
-        mapType = map1;
-        isMultiplayer = false;
-        bitcoinCount = 500; // SUBJECT TO CHANGE!
-        baseRow = -1;
-        baseCol = -1;
 
     currentWave = 0;
     enemiesPerWave = 5;
     enemiesToSpawn = 0;
 
+    // NOTE: Reimplement! This timer should be the pause between enemy spawns.
+//    waveTimer = new QTimer(this);
+//    connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
 
+    gameTick = new QTimer(this);
+    connect(gameTick, &QTimer::timeout, this, &GameMapDialog::updateGame);
 
-    updateTimer = new QTimer(this);
-    connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
-    updateTimer->start(1000/frameRate);
-
-        // NOTE: Reimplement!
-//        waveTimer = new QTimer(this);
-//        connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
-
-        updateTimer = new QTimer(this);
-        connect(updateTimer, &QTimer::timeout, this, &GameMapDialog::updateGame);
-
-        pauseMenu = nullptr;
+    enemyTick = new QTimer(this);
+    connect(enemyTick, &QTimer::timeout, this, &GameMapDialog::tickEnemies);
 
     pauseMenu = nullptr;
+
 }
 
 void GameMapDialog::setDifficulty(int dif)
@@ -151,6 +128,8 @@ void GameMapDialog::drawMap()
     mapFile = new QFile(this);
     switch (mapType)
     {
+        default:
+            [[fallthrough]];
         case map1:
             qDebug() << "Loaded Map 1.";
             mapFile->setFileName(":/resources/maps/map1.txt");
@@ -275,8 +254,23 @@ void GameMapDialog::drawMap()
         buildTower(base, baseRow, baseCol);
 
         // Only start game if a valid map was read:
+        gameTick->start(1000/frameRate);
 //        waveTimer->start(10000);
-        updateTimer->start(1000/frameRate);
+        // Modify enemy walking speed and attack rate based on difficulty:
+        switch (gameDifficulty)
+        {
+        case easy:
+            enemyTick->start(1000/(frameRate-2));
+            break;
+        default:
+            [[fallthrough]];
+        case medium:
+            enemyTick->start(1000/frameRate);
+            break;
+        case hard:
+            enemyTick->start(1000/(frameRate+2));
+            break;
+        }
     }
     else
     {
@@ -485,37 +479,26 @@ void GameMapDialog::floodFill()
     gameScene->addItem(enemy2);
 
     spawnPoints.enqueue(spawnTile);
+    // TEMP END.
 
 }
 
 void GameMapDialog::updateGame()
 {
-    QVector<Enemy*> enemiesToRemove;
-    for (Enemy* &enemy : enemies)
-    {
-        enemy->Tick();
-        if (enemy->getState() == Dying)
-        {
-            if (!enemy->isJustLoaded()) {
-                bitcoinCount += enemy->getBitcoinReward();
-            }
-            enemiesToRemove.append(enemy);
-            gameScene->removeItem(enemy);
-        }
-        else if (enemy->isJustLoaded()) {
-            enemy->setJustLoaded(false);  // Clear flag after first update
-        }
-    }
-    for (Enemy* &enemy : enemiesToRemove) {
-        enemies.removeOne(enemy);
-        delete enemy;
-    }
-    updateBitcoinDisplay();
-    gameScene->update();
-
     for (Tower* &tower : towers)
     {
         tower->Tick();
+    }
+
+    gameScene->update();
+    updateBitcoinDisplay();
+}
+
+void GameMapDialog::tickEnemies()
+{
+    for (Enemy* &enemy : enemies)
+    {
+        enemy->Tick();
     }
 }
 
@@ -580,8 +563,11 @@ void GameMapDialog::destroyTower(int row, int col)
 
 void GameMapDialog::killEnemy(Enemy *e)
 {
-    enemies.removeOne(e);
-    e->deleteLater();
+    if (enemies.removeOne(e))
+        bitcoinCount += e->getBitcoinReward();
+
+    if (e != nullptr)
+        e->deleteLater();
 }
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)
@@ -594,7 +580,7 @@ void GameMapDialog::keyPressEvent(QKeyEvent *event)
 void GameMapDialog::pauseGame()
 {
     if (!pauseMenu) {
-        updateTimer->stop();
+        gameTick->stop();
         pauseMenu = new PauseMenuDialog(this);
         connect(pauseMenu, &PauseMenuDialog::resumeGame, this, &GameMapDialog::onResumeGame);
         connect(pauseMenu, &PauseMenuDialog::saveGame, this, &GameMapDialog::onSaveGame);
@@ -605,7 +591,7 @@ void GameMapDialog::pauseGame()
 
 void GameMapDialog::resumeGame()
 {
-    updateTimer->start();
+    gameTick->start();
     pauseMenu = nullptr;
 }
 
@@ -652,7 +638,6 @@ void GameMapDialog::cleanState()
         }
     }
 }
-
 
 bool GameMapDialog::saveGameToFile(const QString& filename)
 {
@@ -823,8 +808,6 @@ bool GameMapDialog::loadGameFromFile(const QString& filename) {
     cleanState();
     drawMap();
 
-
-    if (updateTimer) updateTimer->start(125);
     bitcoinCount = savedBitcoinCount;
     updateBitcoinDisplay();
 

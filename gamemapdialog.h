@@ -82,7 +82,8 @@ private:
     Tile *tileGrid[2*mapHeight][2*mapWidth];
     QQueue<Tile*> spawnPoints; // Queue used to cycle the spawning of enemies.
 
-    QTimer *updateTimer;
+    QTimer *gameTick;
+    QTimer *enemyTick;
     QTimer *waveTimer;
 
     int currentWave;
@@ -90,7 +91,6 @@ private:
     int enemiesPerWave;
     int bitcoinCount;
     int baseRow, baseCol; // Indices for base position.
-//    int spawnRow, spawnCol; // Indices for spawn position.
 
     QGraphicsTextItem *bitcoinText;
     QGraphicsRectItem *bitcoinBackground;
@@ -101,6 +101,7 @@ private:
     int savedBitcoinCount; // Added to keep track of saved bitcoin count
 
     void updateGame();
+    void tickEnemies();
     void pauseGame();
     void resumeGame();
 };
