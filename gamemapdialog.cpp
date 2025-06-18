@@ -43,7 +43,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameDifficulty = medium;
     mapType = map1;
     isMultiplayer = false;
-    bitcoinCount = 500; // SUBJECT TO CHANGE!
+    bitcoinCount = 200; // SUBJECT TO CHANGE!
     baseRow = -1;
     baseCol = -1;
 
