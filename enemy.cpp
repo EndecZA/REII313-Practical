@@ -47,7 +47,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         case Skeleton_Archer: {
 
             health = 30; damage = 1; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
-            bitcoinReward = 7;
+            bitcoinReward = 10;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 9;
@@ -71,7 +71,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Wizard: {
             health = 50; damage = 30; walkSpeed = 1.5; attackSpeed = 0.8; attackRange = 10;
-            bitcoinReward = 15;
+            bitcoinReward = 20;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 15;
@@ -83,7 +83,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Orc: {
             health = 56; damage = 20; walkSpeed = 1; attackSpeed = 1.5; attackRange = 1;
-            bitcoinReward = 10;
+            bitcoinReward = 15;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 6;
@@ -95,7 +95,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Armoured_Orc: {
             health = 128; damage = 20; walkSpeed = 1; attackSpeed = 1.2; attackRange = 1;
-            bitcoinReward = 15;
+            bitcoinReward = 20;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 7;
@@ -107,7 +107,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Elite_Orc: {
             health = 480; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
-            bitcoinReward = 20;
+            bitcoinReward = 50;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 7;
@@ -131,7 +131,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Knight: {
             health = 240; damage = 30; walkSpeed = 1; attackSpeed = 0.8; attackRange = 2;
-            bitcoinReward = 30;
+            bitcoinReward = 40;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 7;
@@ -143,7 +143,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Knight_Templar: {
             health = 960; damage = 40; walkSpeed = 1; attackSpeed = 0.8; attackRange = 2;
-            bitcoinReward = 50;
+            bitcoinReward = 80;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 7;
@@ -155,7 +155,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Werebear: {
             health = 280; damage = 20; walkSpeed = 2; attackSpeed = 2; attackRange = 1;
-            bitcoinReward = 30;
+            bitcoinReward = 50;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 9;
@@ -167,7 +167,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Cleric: {
             health = 560; damage = 15; walkSpeed = 1.5; attackSpeed = 1; attackRange = 5;
-            bitcoinReward = 40;
+            bitcoinReward = 50;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 9;
