@@ -247,6 +247,11 @@ void Tile::addEnemy(Enemy *e) // Add enemy to tile.
 
 void Tile::damageEnemy(int damage, int piercing, Tower* tower) // Damage enemies at tile.
 {
+    if (rand()%tower->getRange() != 0) // Only attack enemies selectively.
+    {
+        return;
+    }
+
     if (!enemies.isEmpty())
     {
         int count = enemies.size();
@@ -261,7 +266,7 @@ void Tile::damageEnemy(int damage, int piercing, Tower* tower) // Damage enemies
 
             --count;
             if (count == 0)
-                break;
+                break; // Dont attack more times than the amount of enemies at the tile.
         }
     }
 }
@@ -316,11 +321,11 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
                 "   font-size: 15px;"
                 "}");
 
-            QAction* barricadeTower = towerMenu->addAction("Build Barricade: ADD COST");
-            QAction* meleeTower = towerMenu->addAction("Build Melee Tower: ADD COST");
-            QAction* archerTower = towerMenu->addAction("Build Archer Tower: ADD COST");
-            QAction* fireTower = towerMenu->addAction("Build Fire Tower: ADD COST");
-            QAction* wizardTower = towerMenu->addAction("Build Wizard Tower: ADD COST");
+            QAction* barricadeTower = towerMenu->addAction("Build Barricade: -50 B");
+            QAction* meleeTower = towerMenu->addAction("Build Melee Tower: -75 B");
+            QAction* archerTower = towerMenu->addAction("Build Archer Tower: -100 B");
+            QAction* fireTower = towerMenu->addAction("Build Fire Tower: -125 B");
+            QAction* wizardTower = towerMenu->addAction("Build Wizard Tower: -150 B");
 
             connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
             {
@@ -340,7 +345,7 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
 
             towerMenu->popup(e->screenPos()); // Show menu at mouse position.
         }
-        else if (hasTower || isBarricade)
+        else if ((hasTower || isBarricade) && tower->getLevel() < 2)
         {
             QMenu *towerMenu = new QMenu();
             towerMenu->setStyleSheet(
@@ -353,14 +358,39 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
                 "   font-size: 15px;"
                 "}");
 
-            QAction* sell = towerMenu->addAction("Sell Tower");
-            QAction* upgrade = towerMenu->addAction("Upgrade Tower");
+            QAction* sell = towerMenu->addAction(QString("Sell Tower: +%1 B").arg(tower->getCost()));
+            QAction* upgrade = towerMenu->addAction(QString("Upgrade Tower: -%1 B").arg(tower->getCost() + tower->getUpgradeCost()));
 
             connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
             {
                 if (action == sell)
                     emit sellTower(row, col);
                 else if (action == upgrade)
+                    emit upgradeTower(row, col);
+
+                towerMenu->deleteLater();
+            });
+
+            towerMenu->popup(e->screenPos()); // Show menu at mouse position.
+        }
+        else if (isBase && tower->getLevel() < 2)
+        {
+            QMenu *towerMenu = new QMenu();
+            towerMenu->setStyleSheet(
+                "QMenu {"
+                "   background-color: #FFB347;"
+                "   color: black;"
+                "   border: 1px solid black;"
+                "   border-radius: 5px;"
+                "   font-family: 'Press Start 2P';"
+                "   font-size: 15px;"
+                "}");
+
+            QAction* upgrade = towerMenu->addAction(QString("Upgrade Base: -%1 B").arg(tower->getCost() + tower->getUpgradeCost()));
+
+            connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
+            {
+                if (action == upgrade)
                     emit upgradeTower(row, col);
 
                 towerMenu->deleteLater();

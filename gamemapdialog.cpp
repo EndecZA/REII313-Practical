@@ -61,14 +61,9 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         spawnCol = mapWidth-1;
 
     currentWave = 0;
-    totalEnemiesPerWave = 5;
-
-
-    currentWave = 0;
     totalEnemiesPerWave = 5; // Set the number of enemies per wave
     waveTimer = new QTimer(this);
     connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::spawnWave);
-    waveTimer->start(10000);
 
     gameTick = new QTimer(this);
     connect(gameTick, &QTimer::timeout, this, &GameMapDialog::updateGame);
@@ -258,7 +253,6 @@ void GameMapDialog::drawMap()
     waveText = new QGraphicsTextItem("Wave: 0");
     waveText->setFont(QFont("Arial", 10));
     waveText->setDefaultTextColor(Qt::white);
-    gameScene->addItem(waveText);
     waveText->setPos(5, 50);
 
 
@@ -274,17 +268,14 @@ void GameMapDialog::drawMap()
     bitcoinIcon->setPos(10 + 5, 8);
     bitcoinText->setPos(10 + 32 + 8, 10);
 
-
-
-
-    // Build base tower and run flooding algorithm:
+    // Start game if the base and spawnpoints were read successfully:
     if (baseRow != -1 && baseCol != -1 && !spawnPoints.isEmpty()) // Map read successfully.
     {
-        buildTower(base, baseRow, baseCol);
+        buildTower(base, baseRow, baseCol); // Build the base tower and run flooding algorithm.
 
         // Only start game if a valid map was read:
         gameTick->start(1000/frameRate);
-//        waveTimer->start(10000);
+        waveTimer->start(10000);
         // Modify enemy walking speed and attack rate based on difficulty:
         switch (gameDifficulty)
         {
@@ -444,6 +435,20 @@ void GameMapDialog::floodFill()
     }
 
     qDebug() << "Game map flooded.";
+
+    // Ensure that the player cannot close off the base with towers:
+    Tile* tile = spawnPoints.front();
+    while (tile->next != nullptr && !tile->isBase)
+    {
+        tile = tile->next;
+    }
+    if (!tile->isBase)
+    {
+        // Base has been closed off, remove last added tower:
+        Tower* tower = towers.last();
+        sellTower(tower->tile->row, tower->tile->col);
+    }
+
 }
 
 
@@ -519,16 +524,17 @@ void GameMapDialog::spawnWave()
         enemies.append(enemy);
         gameScene->addItem(enemy);
 
-        spawnPoints.enqueue(spawnTile);
+        spawnPoints.enqueue(spawnTile); // Re-enqueue spawn point to cycle spawn locations
 
         QCoreApplication::processEvents(); // Keep UI responsive
         QThread::msleep(50);  //Delay 50ms between each enemy spawn to avoid overlap visually
     }
 
-    currentWave++;
-    totalEnemiesPerWave += 2;
+    currentWave++; // Increment wave
+    totalEnemiesPerWave += 2; // Increase enemies per wave by 2 for next wave
 
     qDebug() << "Spawned Wave" << currentWave << "with" << waveEnemies.size() << "enemies.";
+
 }
 
 
@@ -554,11 +560,10 @@ void GameMapDialog::tickEnemies()
 
 void GameMapDialog::updateWaveDisplay()
 {
-    if (!waveText)
+    if (waveText == nullptr)
         return;
 
     waveText->setPlainText(QString("Wave: %1").arg(currentWave));
-    waveText->setPos(5, 50);
 }
 
 
@@ -612,9 +617,10 @@ void GameMapDialog::updateBitcoinDisplay()
 void GameMapDialog::buildTower(towerType type, int row, int col)
 {
     Tower *tower = new Tower(type);
-    if (bitcoinCount - tower->getCost() >= 0)
+    if (bitcoinCount - tower->getCost() >= 0 || type == base)
     {
-        bitcoinCount -= tower->getCost(); // Pay amount for tower.
+        if (type != base)
+            bitcoinCount -= tower->getCost(); // Pay amount for tower.
 
         tileGrid[row][col]->addTower(tower);
         gameScene->addItem(tower);
@@ -623,14 +629,27 @@ void GameMapDialog::buildTower(towerType type, int row, int col)
         connect(tower, &Tower::destroyTower, this, &GameMapDialog::destroyTower);
 
         // Connect tower attacking signal to tiles that are in range:
-        int range = tower->getRange();
-        for (int i = row-2*range; i <= row+2*range; ++i)
+        if (!tileGrid[row][col]->isBase)
         {
-            for (int j = col-2*range; j <= col+2*range; ++j)
+            int range = tower->getRange();
+            for (int i = row-2*range; i <= row+2*range; ++i)
             {
-                if (i >= 0 && i < 2*mapHeight && j >= 0 && j < 2*mapWidth)
-                    if (tileGrid[i][j] != nullptr)
-                        connect(tower, &Tower::Attack, tileGrid[i][j], &Tile::damageEnemy);
+                for (int j = col-2*range; j <= col+2*range; ++j)
+                {
+                    if (i >= 0 && i < 2*mapHeight && j >= 0 && j < 2*mapWidth)
+                    {
+                        if (tileGrid[i][j] != nullptr && !tileGrid[i][j]->isBarrier)
+                        {
+                            int dx = row-i;
+                            int dy = col-j;
+                            float r = sqrtf(dx*dx + dy*dy);
+                            if (r <= 2*range) // Connect tiles that are a radius range away from the tower.
+                            {
+                                connect(tower, &Tower::Attack, tileGrid[i][j], &Tile::damageEnemy);
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -686,14 +705,21 @@ void GameMapDialog::attackAnimation(Tower* tower, Enemy* enemy)
 {
     QPen pen(Qt::red);
     pen.setWidth(1);
-    pen.setStyle(Qt::DashLine);
-    float x1 = tower->x();
-    float x2 = enemy->x();
-    float y1 = tower->y();
-    float y2 = enemy->y();
+    pen.setStyle(Qt::SolidLine);
+    pen.setCosmetic(true);
+    float x1 = tower->x() + tileSize/2;
+    float y1 = tower->y() - tileSize/2;
+    float x2 = enemy->x() + tileSize/2;
+    float y2 = enemy->y() + tileSize/4;
     QGraphicsLineItem* line = gameScene->addLine(QLineF(x1, y1, x2, y2), pen);
     line->setZValue(1000);
-    gameScene->update();
+
+    QTimer::singleShot(250, this, [line, this]() {
+        if (gameScene) {
+            gameScene->removeItem(line);
+        }
+        delete line;
+    });
 }
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)
@@ -714,6 +740,8 @@ void GameMapDialog::pauseGame()
 {
     if (!pauseMenu) {
         gameTick->stop();
+        enemyTick->stop();
+        waveTimer->stop();
         pauseMenu = new PauseMenuDialog(this);
         connect(pauseMenu, &PauseMenuDialog::resumeGame, this, &GameMapDialog::onResumeGame);
         connect(pauseMenu, &PauseMenuDialog::saveGame, this, &GameMapDialog::onSaveGame);
@@ -726,7 +754,7 @@ void GameMapDialog::resumeGame()
 {
     gameTick->start();
     enemyTick->start();
-    // waveTimer->start();
+    waveTimer->start();
     pauseMenu = nullptr;
 }
 
@@ -949,7 +977,16 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
     // Split the content into lines
     QStringList lines = fileContent.split('\n', QString::SkipEmptyParts);
 
-    // Read header lines for map/difficulty/bitcoin/wave:
+    // Initialize default values in case of partial file
+    mapType = map1;
+    gameDifficulty = medium;
+    bitcoinCount = 200;
+    savedBitcoinCount = 200;
+    currentWave = 0;
+
+    bool readingEnemies = false;
+    bool readingTowers = false;
+
     for (const QString& line : qAsConst(lines)) {
         qDebug() << "Read line:" << line; // Debugging line
         if (line.startsWith("MapType:")) {

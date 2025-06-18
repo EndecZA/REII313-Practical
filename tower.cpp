@@ -8,44 +8,68 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 
     type = t;
     maxHealth = -1; // Default: Tower is unkillable.
-    QString path = "";
 
+    QString path = "";
     switch (type) // Initialize base attributes:
     {
-    // SUBJECT TO CHANGE!!
-        default:
-            [[fallthrough]];
         case barricade:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 50; damage = 5; fireRate = 10; range = 1; piercing = 2; maxHealth = 50;
+            cost = 50; upgradeCost = 25; damage = 5; attackSpeed = 1; range = 1; piercing = 2; maxHealth = 25;
         break;
         case melee:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 75; damage = 15; fireRate = 10; range = 2; piercing = 10;
+            cost = 75; upgradeCost = 25; damage = 15; attackSpeed = 5; range = 2; piercing = 5;
         break;
         case archer:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 100; damage = 20; fireRate = 20; range = 6; piercing = 2;
+            cost = 100; upgradeCost = 25; damage = 20; attackSpeed = 2; range = 3; piercing = 2;
         break;
         case fire:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 125; damage = 50; fireRate = 10; range = 4; piercing = 10;
+            cost = 125; upgradeCost = 25; damage = 50; attackSpeed = 3; range = 2; piercing = 10;
         break;
         case wizard:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 150; damage = 100; fireRate = 5; range = 10; piercing = 4;
+            cost = 150; upgradeCost = 25; damage = 100; attackSpeed = 0.8; range = 5; piercing = 5;
         break;
         case base:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 0; damage = 0; fireRate = 0; range = 0; piercing = 0; maxHealth = 500;
+            cost = 0; upgradeCost = 300; damage = 0; attackSpeed = 0; range = 0; piercing = 0; maxHealth = 500;
         break;
     }
     pixmap = new QPixmap(path);
 
     towerLevel = 0; // Levels: 0, 1, 2
     animationCounter = 1;
-    attackCounter = 1;
+    attackCooldown = 1; // Reset attack cooldown.
     health = maxHealth;
+
+    if (maxHealth != -1)
+    {
+        // Create background bar (grey)
+        healthBarBack = new QGraphicsRectItem(this);
+        healthBarBack->setRect(0, 0, 40, 5);
+        healthBarBack->setBrush(Qt::gray);
+        healthBarBack->setZValue(1);
+
+        // Create foreground bar (green)
+        healthBarFront = new QGraphicsRectItem(healthBarBack);
+        healthBarFront->setRect(0, 0, 40, 5);
+        healthBarFront->setBrush(Qt::green);
+        healthBarFront->setZValue(2);
+
+        // Position bar above tower
+        healthBarBack->setPos(14, -80);
+
+        healthBarBack->hide();
+        healthBarFront->hide();
+    }
+    else
+    {
+        healthBarBack = nullptr;
+        healthBarFront = nullptr;
+    }
+
     Tick(); // Initialize tower.
 
 }
@@ -55,6 +79,16 @@ int Tower::getCost()
     return cost;
 }
 
+int Tower::getUpgradeCost()
+{
+    return upgradeCost;
+}
+
+int Tower::getLevel()
+{
+    return towerLevel;
+}
+
 int Tower::getRange()
 {
     return range;
@@ -62,46 +96,50 @@ int Tower::getRange()
 
 int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance after upgrade.
 {
-    if (balance >= cost && towerLevel < 3) // Won't upgrade above 3rd level.
+    if (balance >= (cost+upgradeCost) && towerLevel < 2) // Won't upgrade above 3rd level.
     {
         ++towerLevel;
-        balance -= cost; // Remove cost of tower from balance.
-        cost += 25; // Increase the cost of next upgrade. SUBJECT TO CHANGE!
+        cost += upgradeCost; // Increase the cost of next upgrade. SUBJECT TO CHANGE!
+        balance -= cost; // Remove cost of upgraded tower from balance.
+        upgradeCost += upgradeCost; // Double next upgrade cost.
 
         switch (type) // Update attributes:
         {
-        // CODE HERE!
-            default:
-                [[fallthrough]];
             case barricade:
-
+                maxHealth += 50;
+                health += 50;
+                damage += 10; attackSpeed += 1; range += 1; piercing += 2;
             break;
             case melee:
-
+                damage += 10; attackSpeed += 1; range += 1; piercing += 2;
             break;
             case archer:
-
+                damage += 10; attackSpeed += 1; range += 1; piercing += 2;
             break;
             case fire:
-
+                damage += 15; attackSpeed += 1; range += 1; piercing += 2;
             break;
             case wizard:
-
+                damage += 25; attackSpeed += 1; range += 1; piercing += 2;
             break;
             case base:
-
+                maxHealth += 250;
+                health += 250;
             break;
         }
     }
+
     return balance;
 
 }
 
-void Tower::Damage(int damage) // Damage tower.
+void Tower::Damage(Enemy* e) // Damage tower.
 {
     if (type == barricade || type == base)
     {
-        health -= damage;
+        health -= e->getDamage();
+        health = (health < 0) ? 0 : health;
+        e->setState(Attacking); // Keep attacking tower untill it is destroyed.
     }
 }
 
@@ -113,23 +151,28 @@ void Tower::Tick() // Tick function for tower.
     }
     else if (type == base && health <= 0)
     {
-        // Emit gameLost() signal here!!
+        emit gameLost();
     }
 
+    // Update health bar:
     if (maxHealth != -1 && health != maxHealth)
     {
-        // Update health bar here!!
+        healthBarBack->show();
+        healthBarFront->show();
+        float ratio = float(health)/maxHealth;
+        healthBarFront->setRect(0, 0, 40 * ratio, 5);
     }
 
-    if (fireRate != 0)
+    if (attackSpeed != 0)
     {
-        if (attackCounter%fireRate == 0)
+        attackCooldown = (attackCooldown < 0 || attackCooldown > 1) ? 0 : attackCooldown;
+        if (attackCooldown == 0)
         {
-            setPixmap(pixmap->copy(0, 0, 70, 130)); // TEMP: Should be replaced with some sort of attacking tile (perhaps red hue?).
+            attackCooldown = 1; // Reset attack cooldown.
             emit Attack(damage, piercing, this); // Attack all connected enemies.
-            attackCounter = 0;
         }
-        ++attackCounter;
+        else
+            attackCooldown -= attackSpeed/frameRate; // Tower will attack attackSpeed times in one second.
     }
 
     int row = towerLevel; // Row between 0 and 2.

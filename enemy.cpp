@@ -33,6 +33,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             [[fallthrough]];
         case Skeleton: {
             health = 30; damage = 1; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
+
             bitcoinReward = 5;
 
             animationFrames[Moving] = 8;
@@ -57,7 +58,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Armoured_Skeleton: {
             health = 64; damage = 4; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
-            bitcoinReward = 15;
+            bitcoinReward = 10;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 8;
@@ -68,8 +69,8 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Wizard: {
-            health = 80; damage = 3; walkSpeed = 1.5; attackSpeed = 1; attackRange = 10;
-            bitcoinReward = 20;
+            health = 50; damage = 30; walkSpeed = 1.5; attackSpeed = 0.8; attackRange = 10;
+            bitcoinReward = 15;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 15;
@@ -80,8 +81,8 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Orc: {
-            health = 56; damage = 20; walkSpeed = 1; attackSpeed = 1.2; attackRange = 1;
-            bitcoinReward = 12;
+            health = 56; damage = 20; walkSpeed = 1; attackSpeed = 1.5; attackRange = 1;
+            bitcoinReward = 10;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 6;
@@ -92,8 +93,8 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Armoured_Orc: {
-            health = 128; damage = 20; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
-            bitcoinReward = 25;
+            health = 128; damage = 20; walkSpeed = 1; attackSpeed = 1.2; attackRange = 1;
+            bitcoinReward = 15;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 7;
@@ -105,7 +106,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         }
         case Elite_Orc: {
             health = 480; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 1;
-            bitcoinReward = 50;
+            bitcoinReward = 20;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 7;
@@ -116,8 +117,8 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Orcastor: {
-            health = 48; damage = 10; walkSpeed = 2; attackSpeed = 1; attackRange = 2;
-            bitcoinReward = 10;
+            health = 80; damage = 15; walkSpeed = 2; attackSpeed = 1.5; attackRange = 2;
+            bitcoinReward = 30;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 8;
@@ -128,7 +129,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Knight: {
-            health = 240; damage = 15; walkSpeed = 1; attackSpeed = 0.8; attackRange = 1;
+            health = 240; damage = 30; walkSpeed = 1; attackSpeed = 0.8; attackRange = 2;
             bitcoinReward = 30;
 
             animationFrames[Moving] = 8;
@@ -140,8 +141,8 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Knight_Templar: {
-            health = 960; damage = 25; walkSpeed = 1; attackSpeed = 0.8; attackRange = 1;
-            bitcoinReward = 75;
+            health = 960; damage = 40; walkSpeed = 1; attackSpeed = 0.8; attackRange = 2;
+            bitcoinReward = 50;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 7;
@@ -152,8 +153,8 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Werebear: {
-            health = 280; damage = 20; walkSpeed = 2; attackSpeed = 1; attackRange = 1;
-            bitcoinReward = 35;
+            health = 280; damage = 20; walkSpeed = 2; attackSpeed = 2; attackRange = 1;
+            bitcoinReward = 30;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 9;
@@ -164,7 +165,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Cleric: {
-            health = 560; damage = 20; walkSpeed = 1.5; attackSpeed = 1; attackRange = 5;
+            health = 560; damage = 15; walkSpeed = 1.5; attackSpeed = 1; attackRange = 5;
             bitcoinReward = 40;
 
             animationFrames[Moving] = 8;
@@ -224,7 +225,9 @@ int Enemy::getBitcoinReward()
 
 void Enemy::takeDamage(int damage)
 {
-    setState(Damaged);
+    if (state != Damaged)
+        setState(Damaged);
+
     health -= damage;
 }
 
@@ -296,8 +299,9 @@ void Enemy::Tick()
             attackCooldown = (attackCooldown < 0 || attackCooldown > 1) ? 0 : attackCooldown;
             if (attackCooldown == 0)
             {
+                setState(Idle);
                 attackCooldown = 1; // Reset attack cooldown.
-                emit Attack(damage); // Emit attacking signal.
+                emit Attack(this); // Emit attacking signal.
             }
             else
                 attackCooldown -= attackSpeed/frameRate; // Enemy will attack attackSpeed times in one second.
@@ -346,6 +350,10 @@ void Enemy::Tick()
             setState(Idle);
             hide();
         }
+        else if (state == Idle)
+        {
+            setState(Moving); // Try to move after being idle.
+        }
     }
     ++animationCounter[state]; // Cycle animation.
 }
@@ -359,8 +367,16 @@ void Enemy::setDest(int x, int y) // Set new destination position.
         isMirrored = false;
 
     // Make the old destination the new source:
-    source[0] = dest[0];
-    source[1] = dest[1];
+    if (source[0] == 0 && source[1] == 0)
+    {
+        source[0] = x;
+        source[1] = y;
+    }
+    else
+    {
+        source[0] = dest[0];
+        source[1] = dest[1];
+    }
 
     // Add new destination:
     dest[0] = x;

@@ -87,7 +87,6 @@ private:
 
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
-    QGraphicsTextItem *waveText;
     QFile *mapFile;
 
     QVector<Enemy*> enemies;
@@ -113,6 +112,7 @@ private:
     int baseRow, baseCol; // Indices for base position.
 
     QGraphicsTextItem *bitcoinText;
+    QGraphicsTextItem *waveText;
     QGraphicsRectItem *bitcoinBackground;
     QGraphicsPixmapItem *bitcoinIcon;
     QGraphicsItemGroup *bitcoinGroup;
