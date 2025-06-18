@@ -7,18 +7,17 @@
 #include <QGraphicsScene>
 #include <QGraphicsTextItem>
 #include <QGraphicsRectItem>
+#include <QGraphicsLineItem>
+#include <QPen>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsItemGroup>
 #include <QPixmap>
-#include <QVector>
 #include <QFile>
 #include <QTimer>
-#include <QPointF>
-#include <QPair>
 #include <QQueue>
-#include <QMap>
 #include <QSound>
 #include <QKeyEvent>
+
 #include "tile.h"
 #include "enemy.h"
 #include "tower.h"
@@ -50,51 +49,64 @@ public:
     int getMap();
     bool getMultiplayer();
     void drawMap();
+
     void updateBitcoinDisplay();
-    QVector<QPointF> findPath(const QPointF& start, const QPointF& target);
+    void updateWaveDisplay();
+
+
+    void spawnWave();
+
     enum difficulty gameDifficulty;
     enum map mapType;
     bool isMultiplayer;
-    static const int tileSize = 32;
-    static const int mapWidth = 15;
-    static const int mapHeight = 30;
-
-    // NOTE: mapGrid & barrierGridd will be removed here and only declared in drawMap().
-    int mapGrid[2*mapHeight][2*mapWidth];
-    int barrierGrid[2*mapHeight][2*mapWidth];
-
-    //  NB!! New grid to use for ALL pathfinding & containment etc...
-    Tile *tileGrid[2*mapHeight][2*mapWidth];
-
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
 
-private slots:
+public slots:
     void onResumeGame();
     void onSaveGame();
     void onExitGame();
+    void floodFill(); // Populate tiles with distance parameters and next tile pointers.
     void buildTower(towerType, int row, int col); // Build tower at tile that sent the signal.
     void sellTower(int row, int col); // Sell tower at tile that sent the signal.
     void upgradeTower(int row, int col); // Upgrade tower at tile that sent the signal.
+    void destroyTower(int row, int col);
+    void killEnemy(Enemy*);
+    void attackAnimation(Tower*, Enemy*);
+    bool loadGameFromFile(const QString& filename);
+    bool saveGameToFile(const QString& filename);
+    void cleanState();
+
 
 private:
+    static const int tileSize = 32;
+    static const int mapWidth = 15;
+    static const int mapHeight = 30;
+    static const int frameRate = 8; // Framerate in FPS.
+
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
-    QPixmap *tileset;
+    QGraphicsTextItem *waveText;
     QFile *mapFile;
 
     QVector<Enemy*> enemies;
     QVector<Tower*> towers;
-    QVector<QPointF> getSpawnPoints();
 
+    int mapGrid[2*mapHeight][2*mapWidth];
+    int barrierGrid[2*mapHeight][2*mapWidth];
+    Tile *tileGrid[2*mapHeight][2*mapWidth];
+    QQueue<Tile*> spawnPoints; // Queue used to cycle the spawning of enemies.
+
+    QTimer *gameTick;
+    QTimer *enemyTick;
     QTimer *waveTimer;
-    QTimer *updateTimer;
 
     int currentWave;
     int enemiesToSpawn;
-    int enemiesPerWave;
+    int totalEnemiesPerWave;
     int bitcoinCount;
+    int baseRow, baseCol; // Indices for base position.
 
     QGraphicsTextItem *bitcoinText;
     QGraphicsRectItem *bitcoinBackground;
@@ -102,9 +114,10 @@ private:
     QGraphicsItemGroup *bitcoinGroup;
     PauseMenuDialog *pauseMenu;
 
-    void spawnEnemy(EnemyType type, const QPointF& pos);
-    void startNextWave();
+    int savedBitcoinCount; // Added to keep track of saved bitcoin
+
     void updateGame();
+    void tickEnemies();
     void pauseGame();
     void resumeGame();
 };

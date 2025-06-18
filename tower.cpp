@@ -1,46 +1,51 @@
 #include "tower.h"
+#include "tile.h"
 
 Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 {
     setScale(0.5); // Halve the size of each tower on the scene (from 70x130px to 35x65px).
     setOffset(-1, -towerH+24); // Adjust the datum for the tower.
+
     type = t;
+    maxHealth = -1; // Default: Tower is unkillable.
     QString path = "";
 
     switch (type) // Initialize base attributes:
     {
     // SUBJECT TO CHANGE!!
+        default:
+            [[fallthrough]];
         case barricade:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 50; damage = 0; fireRate = 0; range = 1;
+            cost = 50; damage = 5; fireRate = 10; range = 1; piercing = 2; maxHealth = 50;
         break;
         case melee:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 75; damage = 15; fireRate = 10; range = 2;
+            cost = 75; damage = 15; fireRate = 10; range = 2; piercing = 10;
         break;
         case archer:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 100; damage = 20; fireRate = 20; range = 5;
+            cost = 100; damage = 20; fireRate = 20; range = 6; piercing = 2;
         break;
         case fire:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 125; damage = 50; fireRate = 10; range = 3;
+            cost = 125; damage = 50; fireRate = 10; range = 4; piercing = 10;
         break;
         case wizard:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 150; damage = 100; fireRate = 5; range = 10;
+            cost = 150; damage = 100; fireRate = 5; range = 10; piercing = 4;
         break;
-        default:
+        case base:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 50; damage = 0; fireRate = 0; range = 1;
+            cost = 0; damage = 0; fireRate = 0; range = 0; piercing = 0; maxHealth = 500;
         break;
     }
     pixmap = new QPixmap(path);
 
     towerLevel = 0; // Levels: 0, 1, 2
-    state = idle;
     animationCounter = 1;
     attackCounter = 1;
+    health = maxHealth;
     Tick(); // Initialize tower.
 
 }
@@ -48,6 +53,11 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 int Tower::getCost()
 {
     return cost;
+}
+
+int Tower::getRange()
+{
+    return range;
 }
 
 int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance after upgrade.
@@ -61,6 +71,8 @@ int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance afte
         switch (type) // Update attributes:
         {
         // CODE HERE!
+            default:
+                [[fallthrough]];
             case barricade:
 
             break;
@@ -76,7 +88,7 @@ int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance afte
             case wizard:
 
             break;
-            default:
+            case base:
 
             break;
         }
@@ -85,14 +97,36 @@ int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance afte
 
 }
 
+void Tower::Damage(int damage) // Damage tower.
+{
+    if (type == barricade || type == base)
+    {
+        health -= damage;
+    }
+}
+
 void Tower::Tick() // Tick function for tower.
 {
-    if (state == attacking)
+    if (type == barricade && health <= 0 && tile != nullptr)
+    {
+        emit destroyTower(tile->row, tile->col);
+    }
+    else if (type == base && health <= 0)
+    {
+        // Emit gameLost() signal here!!
+    }
+
+    if (maxHealth != -1 && health != maxHealth)
+    {
+        // Update health bar here!!
+    }
+
+    if (fireRate != 0)
     {
         if (attackCounter%fireRate == 0)
         {
             setPixmap(pixmap->copy(0, 0, 70, 130)); // TEMP: Should be replaced with some sort of attacking tile (perhaps red hue?).
-            emit Attack(damage); // Attack all connected enemies.
+            emit Attack(damage, piercing, this); // Attack all connected enemies.
             attackCounter = 0;
         }
         ++attackCounter;

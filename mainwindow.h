@@ -20,6 +20,7 @@ private slots:
     void onSinglePlayerClicked();
     void onMultiPlayerClicked();
 
+
 private:
     QLabel *Background;
     QPushButton *SinglePlayerBtn;

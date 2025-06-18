@@ -2,20 +2,22 @@
 
 Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPixmapItem()
 {
-    // Initialize flood fill parameters:
+    // Initialize tile parameters:
     row = r;
     col = c;
     isBarrier = false;
     hasTower = false;
-    weight = 1;
-    dist = 999; // Initialize minimum distance.
+    isBarricade = false;
+    isBase = false;
+    isSpawn = false;
+    dist = -1; // Initialize distance to destination tile.
     next = nullptr;
     tower = nullptr;
 
     // Save tileset on the stack to copy from:
     QPixmap tileset(":/resources/images/tileset.png");
 
-    pos[0] = col*tileSize/2 - tileSize/4;
+    pos[0] = col*tileSize/2;
     pos[1] = row*tileSize/4 + rand()%5 - 2; // Add vertical variation for interest.
 
     // Add tile Pixmap to tile:
@@ -23,6 +25,8 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
     int colPixmap = 0;
     switch (tileType)
     {
+        default:
+            [[fallthrough]];
         case 1: // Grass Variant:
             rowPixmap = rand()%2 + 6;
             colPixmap = rand()%3 + 3;
@@ -34,20 +38,24 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
         case 3: // Water:
             rowPixmap = 0;
             colPixmap = 1;
-            weight = 2; // Difficult terrain.
         break;
         case 4: // Lava:
             rowPixmap = 0;
             colPixmap = 3;
-            weight = 2; // Difficult terrain.
         break;
         case 5: // Brick Variant:
             rowPixmap = rand()%3 + 8;
             colPixmap = 0;
         break;
-        default: // Grass Variant:
-            rowPixmap = rand()%2 + 6;
-            colPixmap = rand()%3 + 3;
+        case 6: // Base Tower position: (use brick variant)
+            rowPixmap = rand()%3 + 8;
+            colPixmap = 0;
+            isBase = true;
+        break;
+        case 7: // Enemy spawn point position: (Use magic sand)
+            rowPixmap = 1;
+            colPixmap = 0;
+            isSpawn = true;
         break;
     }
     rowPixmap *= tileSize;
@@ -57,14 +65,17 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
     setZValue(y()); // NB! Set Z Values according to y-position in scene!
 
     // Add barrier if there is a barrier to be added:
-    if (barrierType == 0)
+    if (barrierType == 0) // No barrier:
     {
+        // Randomly add tile accessories:
         if (rand()%20 == 0 && (tileType == 1 || tileType == 2)) // Add tile accessories for 1 in every 20 empty tiles (decorative items).
         {
             int rowPixmap = 0;
             int colPixmap = 0;
             switch (rand()%7)
             {
+                default:
+                    [[fallthrough]];
                 case 0: // Rock Variant:
                 case 1:
                     rowPixmap = rand()%3 + 3;
@@ -84,10 +95,6 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
                     rowPixmap = 11;
                     colPixmap = rand()%6 + 2;
                 break;
-                default: // Rock Variant:
-                    rowPixmap = rand()%3 + 3;
-                    colPixmap = 10;
-                break;
             }
             rowPixmap *= tileSize;
             colPixmap *= tileSize;
@@ -102,6 +109,8 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
             int colPixmap = 0;
             switch (rand()%2)
             {
+                default:
+                    [[fallthrough]];
                 case 0: // Rock Variant:
                     rowPixmap = rand()%3 + 3;
                     colPixmap = 10;
@@ -109,10 +118,6 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
                 case 1: // Container Variant:
                     rowPixmap = 11;
                     colPixmap = rand()%6 + 2;
-                break;
-                default: // Rock Variant:
-                    rowPixmap = rand()%3 + 3;
-                    colPixmap = 10;
                 break;
             }
             rowPixmap *= tileSize;
@@ -127,7 +132,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
             barrier = nullptr;
         }
     }
-    else
+    else if (!isBase && !isSpawn) // If the tile is a barrier:
     {
         isBarrier = true;
         int rowPixmap = 0;
@@ -150,11 +155,9 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
                 rowPixmap = 0;
                 colPixmap = 3;
             break;
+            default:
+                [[fallthrough]];
             case 5: // Brick Variant:
-                rowPixmap = rand()%3 + 8;
-                colPixmap = 0;
-            break;
-            default: // Brick Variant:
                 rowPixmap = rand()%3 + 8;
                 colPixmap = 0;
             break;
@@ -166,38 +169,48 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
         barrier->setPos(0, -tileSize/2); // Add vertical offset to accessory
         barrier->setZValue(barrier->y());
     }
+    else
+        barrier = nullptr;
 
 }
 
 void Tile::addTower(Tower *t)
 {
-    if (!hasTower && !isBarrier && t != nullptr)
+    if (!hasTower && !isBarrier && !isBarricade && !isSpawn && t != nullptr)
     {
         if (barrier != nullptr)
-            barrier->setVisible(false); // Hide accessory.
+        {
+            barrier->hide(); // Hide accessory.
+            update();
+        }
 
-        hasTower = true;
+        if (!isBase && t->type != barricade)
+            hasTower = true;
+        else if (!isBase && t->type == barricade)
+            isBarricade = true;
+
         tower = t;
+        tower->tile = this;
         tower->setPos(pos[0], pos[1]);
         tower->setZValue(tower->y());
-
-        emit flood(); // Reflood tiles. This tile is now unaccessable to enemies.
     }
 
 }
 
 Tower* Tile::removeTower() // Remove tower from tile.
 {
-    if (hasTower)
+    if (hasTower || isBarricade)
     {
         if (barrier != nullptr)
-            barrier->setVisible(true); // Show accessory.
+        {
+            barrier->show(); // Show accessory.
+            update();
+        }
 
         hasTower = false;
+        isBarricade = false;
         Tower* output = tower;
         tower = nullptr;
-
-        emit flood(); // Reflood tiles. This tile is now accessible to enemies.
 
         return output;
     }
@@ -208,18 +221,81 @@ Tower* Tile::removeTower() // Remove tower from tile.
 
 void Tile::addEnemy(Enemy *e) // Add enemy to tile.
 {
-    enemies.append(e);
-    // Set enemy position here: e->setPos(pos[0], pos[1]); Take the old destination and make it the source, then add the new destination.
-    e->setZValue(e->y());
+    if (e != nullptr)
+    {
+        enemies.append(e); // Add enemy to the vector
+        connect(e, &Enemy::moveEnemy, this, &Tile::fetchNext);
+        connect(e, &Enemy::killEnemy, this, &Tile::killEnemy);
 
+        e->setDest(pos[0], pos[1]); // Move enemy to this tile.
+
+        // Determine if enemy is in range of barricade or base:
+        int count = e->getRange();
+        Tile* nextTile = next;
+        while (count > 0 && e->getState() != Attacking && nextTile != nullptr)
+        {
+            if (next->isBarricade || next->isBase)
+            {
+                connect(e, &Enemy::Attack, nextTile->tower, &Tower::Damage);
+                e->setState(Attacking);
+            }
+            nextTile = nextTile->next;
+            --count;
+        }
+    }
+}
+
+void Tile::damageEnemy(int damage, int piercing, Tower* tower) // Damage enemies at tile.
+{
+    if (!enemies.isEmpty())
+    {
+        int count = enemies.size();
+        for (int i = 0; i < piercing; ++i)
+        {
+            int index = rand()%count;
+            Enemy *enemy = enemies.at(index);
+
+            emit attackAnimation(tower, enemy); // Animate attack.
+
+            enemy->takeDamage(damage); // Damage enemy located in the tile
+
+            --count;
+            if (count == 0)
+                break;
+        }
+    }
+}
+
+void Tile::killEnemy(Enemy *e)
+{
+    removeEnemy(e);
 }
 
 Enemy* Tile::removeEnemy(Enemy *e) // Remove enemy from tile.
 {
     if (enemies.removeOne(e))
+    {
+        disconnect(e, &Enemy::moveEnemy, this, &Tile::fetchNext);
+        disconnect(e, &Enemy::killEnemy, this, &Tile::killEnemy);
         return e;
+    }
     else
         return nullptr; // Return nullptr of the enemy is not contained in the vector.
+
+}
+
+void Tile::fetchNext(Enemy *e) // Remove enemy from list and add to next tile's list.
+{
+    if (next != nullptr && !next->isBase && !next->isBarrier)
+    {
+        next->addEnemy(removeEnemy(e)); // Move enemy to the next tile in the shortest path.
+    }
+    else if (next != nullptr && next->isBase)
+    {
+        e->setState(Idle);
+    }
+    else
+        qDebug() << "Tile::Unable to fetch next destination.";
 
 }
 
@@ -227,7 +303,7 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
 {
     if (e->button() == Qt::RightButton)
     {
-        if (!isBarrier && !hasTower && enemies.isEmpty())
+        if (!isBarrier && !hasTower && !isBarricade && !isBase && !isSpawn && enemies.isEmpty())
         {
             QMenu *towerMenu = new QMenu();
             towerMenu->setStyleSheet(
@@ -264,7 +340,7 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
 
             towerMenu->popup(e->screenPos()); // Show menu at mouse position.
         }
-        else if (hasTower)
+        else if (hasTower || isBarricade)
         {
             QMenu *towerMenu = new QMenu();
             towerMenu->setStyleSheet(

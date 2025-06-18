@@ -55,7 +55,7 @@ SinglePlayerOptionsDialog::SinglePlayerOptionsDialog(QWidget *parent)
     // Initialaze Parameters:
     selectedDifficulty = 0;
     selectedMap = 0;
-    selectedSave = 0; // Zero means new game. 1 => save slot 1 etc.
+    selectedSave = 1; // Zero means new game. 1 => save slot 1 etc.
 
 }
 
@@ -74,7 +74,9 @@ void SinglePlayerOptionsDialog::onNewGameClicked()
 
 void SinglePlayerOptionsDialog::onLoadGameClicked()
 {
-    qDebug() << "SinglePlayerOptionsDialog: Load Game selected";
+    qDebug() << "Load Game button clicked.";
+    emit loadGameRequested("savegame.txt");
     accept();
-
 }
+
+

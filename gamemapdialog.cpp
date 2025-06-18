@@ -1,4 +1,5 @@
 #include "gamemapdialog.h"
+#include "singleplayeroptionsdialog.h"
 #include <QDebug>
 #include <ctime>
 #include <QByteArray>
@@ -16,19 +17,27 @@
 #include <QCoreApplication>
 #include <QDir>
 
-
 GameMapDialog::GameMapDialog(QWidget *parent)
     : QDialog(parent)
 {
-        setModal(true);
-        showMaximized();
-        setFixedSize(1920,1080);
-        setWindowTitle("Dungeons & Towers");
+    setModal(true);
+    showMaximized();
+    setFixedSize(1920,1080);
+    setWindowTitle("Dungeons & Towers");
 
-        gameScene = new QGraphicsScene(this);
-        gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight+32);
-        gameScene->setItemIndexMethod(QGraphicsScene::NoIndex);
-        gameScene->setBackgroundBrush(Qt::black);
+    gameScene = new QGraphicsScene(this);
+    gameScene->setSceneRect(0, 0, tileSize*(mapWidth+0.5), tileSize/2*mapHeight+tileSize);
+    gameScene->setItemIndexMethod(QGraphicsScene::NoIndex);
+    gameScene->setBackgroundBrush(Qt::black);
+    gameView = new QGraphicsView(gameScene, this);
+    gameView->setFixedSize(1920, 1080);
+    gameView->centerOn(0, 0);
+    gameView->setRenderHint(QPainter::Antialiasing);
+    gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    float scale = 1920.0/(tileSize*(mapWidth+0.6));
+    gameView->scale(scale, scale);
+    gameView->show();
 
         gameView = new QGraphicsView(gameScene, this);
         gameView->setFixedSize(1920, 1080);
@@ -67,7 +76,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
         updateTimer->start(125);
 
         pauseMenu = nullptr;
-}
+
 
 void GameMapDialog::setDifficulty(int dif)
 {
@@ -75,19 +84,17 @@ void GameMapDialog::setDifficulty(int dif)
     {
         case 0:
             gameDifficulty = easy;
-            enemiesPerWave = 3;
+            totalEnemiesPerWave = 3;
             break;
+        default:
+            [[fallthrough]];
         case 1:
             gameDifficulty = medium;
-            enemiesPerWave = 5;
+            totalEnemiesPerWave = 5;
             break;
         case 2:
             gameDifficulty = hard;
-            enemiesPerWave = 7;
-            break;
-        default:
-            gameDifficulty = medium;
-            enemiesPerWave = 5;
+            totalEnemiesPerWave = 7;
             break;
     }
 }
@@ -96,6 +103,8 @@ void GameMapDialog::setMap(int map)
 {
     switch (map)
     {
+        default:
+            [[fallthrough]];
         case 0:
             mapType = map1;
             break;
@@ -104,9 +113,6 @@ void GameMapDialog::setMap(int map)
             break;
         case 2:
             mapType = map3;
-            break;
-        default:
-            mapType = map1;
             break;
     }
 }
@@ -136,6 +142,8 @@ void GameMapDialog::drawMap()
     mapFile = new QFile(this);
     switch (mapType)
     {
+        default:
+            [[fallthrough]];
         case map1:
             qDebug() << "Loaded Map 1.";
             mapFile->setFileName(":/resources/maps/map1.txt");
@@ -195,13 +203,29 @@ void GameMapDialog::drawMap()
         {
             if (mapGrid[i][j] != 0)
             {
-                tileGrid[i][j] = new Tile(mapGrid[i][j], barrierGrid[i][j], i, j);
+                if (mapGrid[i][j] == 7)
+                {
+                    tileGrid[i][j] = new Tile(7, 0, i, j); // Force tile to not be a barrier.
+                    spawnPoints.enqueue(tileGrid[i][j]);
+                    qDebug() << "Spawn tile located at: " << i << ";" << j;
+                }
+                else
+                    tileGrid[i][j] = new Tile(mapGrid[i][j], barrierGrid[i][j], i, j); // Add tile normally.
+
+                if (tileGrid[i][j]->isBase)
+                {
+                    baseRow = i;
+                    baseCol = j;
+                    qDebug() << "Base tile located at: " << baseRow << ";" << baseCol;
+                }
+
                 gameScene->addItem(tileGrid[i][j]);
 
                 // Connect relevant signals to slots:
                 connect(tileGrid[i][j], &Tile::buildTower, this, &GameMapDialog::buildTower);
                 connect(tileGrid[i][j], &Tile::sellTower, this, &GameMapDialog::sellTower);
                 connect(tileGrid[i][j], &Tile::upgradeTower, this, &GameMapDialog::upgradeTower);
+                connect(tileGrid[i][j], &Tile::attackAnimation, this, &GameMapDialog::attackAnimation);
             }
             else
             {
@@ -228,10 +252,18 @@ void GameMapDialog::drawMap()
     }
     bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
 
+
+    QGraphicsTextItem *waveText = new QGraphicsTextItem("Wave: 0");
+    waveText->setFont(QFont("Arial", 10));
+    waveText->setDefaultTextColor(Qt::white);
+    gameScene->addItem(waveText);
+    waveText->setPos(5, 50);
+
     bitcoinGroup = new QGraphicsItemGroup();
     bitcoinGroup->addToGroup(bitcoinBackground);
     bitcoinGroup->addToGroup(bitcoinIcon);
     bitcoinGroup->addToGroup(bitcoinText);
+    bitcoinGroup->addToGroup(waveText);
     bitcoinGroup->setZValue(bitcoinGroup->y() + bitcoinGroup->boundingRect().width());
     gameScene->addItem(bitcoinGroup);
 
@@ -261,11 +293,278 @@ void GameMapDialog::updateGame()
     gameScene->update();
 
     // Update state of all towers:
-    for (Tower* &tower : towers)
+
+
+
+    // Build base tower and run flooding algorithm:
+    if (baseRow != -1 && baseCol != -1 && !spawnPoints.isEmpty()) // Map read successfully.
     {
-        tower->Tick();
+        buildTower(base, baseRow, baseCol);
+
+        // Only start game if a valid map was read:
+        gameTick->start(1000/frameRate);
+//        waveTimer->start(10000);
+        // Modify enemy walking speed and attack rate based on difficulty:
+        switch (gameDifficulty)
+        {
+        case easy:
+            enemyTick->start(1000/(frameRate-2));
+            break;
+        default:
+            [[fallthrough]];
+        case medium:
+            enemyTick->start(1000/frameRate);
+            break;
+        case hard:
+            enemyTick->start(1000/(frameRate+2));
+            break;
+        }
+    }
+    else
+    {
+        qDebug() << "No spawn points specified or base position has been omitted.";
+    }
+
+}
+
+void GameMapDialog::floodFill()
+{
+    if (baseRow == -1 || baseCol == -1)
+    {
+        qDebug() << "No base specified.";
+        return;
+    }
+
+    // Reset all tiles:
+    for (int i = 0; i < 2 * mapHeight; ++i)
+    {
+        for (int j = 0; j < 2 * mapWidth; ++j)
+        {
+            if (tileGrid[i][j] != nullptr)
+            {
+                tileGrid[i][j]->dist = -1;
+                tileGrid[i][j]->next = nullptr;
+            }
+        }
+    }
+
+    Tile* baseTile = tileGrid[baseRow][baseCol];
+    baseTile->dist = 0; // Set destination distance to be zero.
+
+    QQueue<Tile*> queue;
+    queue.enqueue(baseTile);
+    while (!queue.isEmpty())
+    {
+        Tile* tile = queue.dequeue();
+        int row = tile->row;
+        int col = tile->col;
+        int dist = tile->dist;
+
+        // Iterate over all eight adjacent tiles:
+        for (int i = 0; i < 8; ++i)
+        {
+            int adjRow = row;
+            int adjCol = col;
+            bool addToQueue = true;
+            switch (i)
+            {
+                case 0: // NW:
+                    --adjRow;
+                    --adjCol;
+                    break;
+                case 1: // SW:
+                    ++adjRow;
+                    --adjCol;
+                    break;
+                case 2: // SE:
+                    ++adjRow;
+                    ++adjCol;
+                    break;
+                case 3: // NE:
+                    --adjRow;
+                    ++adjCol;
+                    break;
+                case 4: // N:
+                    adjRow -= 2;
+                    if (adjRow + 1 >= 0 && adjRow + 1 < 2 * mapHeight && adjCol - 1 >= 0 && adjCol - 1 < 2 * mapWidth)
+                    {
+                        Tile* t = tileGrid[adjRow + 1][adjCol - 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
+                            addToQueue = false;
+                    }
+                    if (adjRow + 1 >= 0 && adjRow + 1 < 2 * mapHeight && adjCol + 1 >= 0 && adjCol + 1 < 2 * mapWidth)
+                    {
+                        Tile* t = tileGrid[adjRow + 1][adjCol + 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
+                            addToQueue = false;
+                    }
+                    break;
+                case 5: // W:
+                    adjCol -= 2;
+                    if (adjRow - 1 >= 0 && adjRow - 1 < 2 * mapHeight && adjCol + 1 >= 0 && adjCol + 1 < 2 * mapWidth)
+                    {
+                        Tile* t = tileGrid[adjRow - 1][adjCol + 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
+                            addToQueue = false;
+                    }
+                    if (adjRow + 1 >= 0 && adjRow + 1 < 2 * mapHeight && adjCol + 1 >= 0 && adjCol + 1 < 2 * mapWidth)
+                    {
+                        Tile* t = tileGrid[adjRow + 1][adjCol + 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
+                            addToQueue = false;
+                    }
+                    break;
+                case 6: // S:
+                    adjRow += 2;
+                    if (adjRow - 1 >= 0 && adjRow - 1 < 2 * mapHeight && adjCol - 1 >= 0 && adjCol - 1 < 2 * mapWidth)
+                    {
+                        Tile* t = tileGrid[adjRow - 1][adjCol - 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
+                            addToQueue = false;
+                    }
+                    if (adjRow - 1 >= 0 && adjRow - 1 < 2 * mapHeight && adjCol + 1 >= 0 && adjCol + 1 < 2 * mapWidth)
+                    {
+                        Tile* t = tileGrid[adjRow - 1][adjCol + 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
+                            addToQueue = false;
+                    }
+                    break;
+                case 7: // E:
+                    adjCol += 2;
+                    if (adjRow - 1 >= 0 && adjRow - 1 < 2 * mapHeight && adjCol - 1 >= 0 && adjCol - 1 < 2 * mapWidth)
+                    {
+                        Tile* t = tileGrid[adjRow - 1][adjCol - 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
+                            addToQueue = false;
+                    }
+                    if (adjRow + 1 >= 0 && adjRow + 1 < 2 * mapHeight && adjCol - 1 >= 0 && adjCol - 1 < 2 * mapWidth)
+                    {
+                        Tile* t = tileGrid[adjRow + 1][adjCol - 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
+                            addToQueue = false;
+                    }
+                    break;
+            }
+
+            if (adjRow < 0 || adjRow >= 2 * mapHeight || adjCol < 0 || adjCol >= 2 * mapWidth)
+                addToQueue = false;
+            else if (tileGrid[adjRow][adjCol] == nullptr || tileGrid[adjRow][adjCol]->isBarrier || tileGrid[adjRow][adjCol]->hasTower)
+                addToQueue = false;
+            else if (tileGrid[adjRow][adjCol]->dist != -1)
+                addToQueue = false;
+
+            if (addToQueue)
+            {
+                tileGrid[adjRow][adjCol]->dist = dist + 1;
+                tileGrid[adjRow][adjCol]->next = tile;
+                queue.enqueue(tileGrid[adjRow][adjCol]);
+            }
+        }
+    }
+
+    qDebug() << "Game map flooded.";
+}
+
+
+// New slot for spawning waves based on your pattern and increasing total enemies per wave
+void GameMapDialog::spawnWave()
+{
+    if (spawnPoints.isEmpty())
+    {
+        qDebug() << "No spawn points available to spawn enemies.";
+        return;
+    }
+
+    Tile* spawnTile = spawnPoints.dequeue();
+    if (spawnTile == nullptr)
+    {
+        qDebug() << "Invalid spawn tile for spawning enemies.";
+        return;
+    }
+
+    QVector<EnemyType> waveEnemies;
+
+    // Define enemy waves:
+    switch (currentWave)
+    {
+        case 0: // Wave 1 (index 0):
+            // 3 Skeletons
+            waveEnemies.fill(Skeleton, 3);
+            break;
+        case 1: // Wave 2:
+            // 4 Skeletons and 1 Skeleton Archer
+            waveEnemies.fill(Skeleton, 4);
+            waveEnemies.append(Skeleton_Archer);
+            break;
+        case 2: // Wave 3:
+            // 6 Skeletons and 1 Armoured Skeleton
+            waveEnemies.fill(Skeleton, 6);
+            waveEnemies.append(Armoured_Skeleton);
+            break;
+        case 3: // Wave 4:
+            // 4 skeletons and 4 armoured skeletons
+            waveEnemies.fill(Skeleton, 4);
+            waveEnemies.append(Armoured_Skeleton);
+            waveEnemies.append(Armoured_Skeleton);
+            waveEnemies.append(Armoured_Skeleton);
+            waveEnemies.append(Armoured_Skeleton);
+            break;
+        case 4: // Wave 5:
+            // 10 Orcs
+            waveEnemies.fill(Orc, 10);
+            break;
+        default:
+            // Wave 6+ random enemies with totalEnemiesPerWave increasing by 2 each wave
+            waveEnemies.clear();
+            int enemiesToSpawn = totalEnemiesPerWave; // Use the updated total enemies tracker
+            for (int i = 0; i < enemiesToSpawn; ++i)
+            {
+                int enemyTypeInt = rand() % 12; // Random enemy type between 0 and 11 (all enemy types)
+                waveEnemies.append(static_cast<EnemyType>(enemyTypeInt));
+            }
+            break;
+    }
+
+    // Spawn each enemy on the spawnTile
+    for (EnemyType etype : qAsConst(waveEnemies))
+    {
+        Enemy* enemy = new Enemy(etype);
+        spawnTile->addEnemy(enemy);
+        connect(enemy, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
+        enemies.append(enemy);
+        gameScene->addItem(enemy);
+    }
+
+    spawnPoints.enqueue(spawnTile); // Re-enqueue spawn point to cycle spawn locations
+
+    currentWave++; // Increment wave
+    totalEnemiesPerWave += 2; // Increase enemies per wave by 2 for next wave
+
+
+
+    qDebug() << "Spawned Wave" << currentWave << "with" << waveEnemies.size() << "enemies.";
+}
+
+
+
+
+void GameMapDialog::tickEnemies()
+{
+    for (Enemy* &enemy : enemies)
+    {
+        enemy->Tick();
     }
 }
+
+void GameMapDialog::updateWaveDisplay()
+{
+    if (!waveText)
+        return;
+
+    waveText->setPlainText(QString("Wave: %1").arg(currentWave));
+    waveText->setPos(5, 50);
+}
+
 
 void GameMapDialog::updateBitcoinDisplay()
 {
@@ -280,16 +579,31 @@ void GameMapDialog::buildTower(towerType type, int row, int col)
     Tower *tower = new Tower(type);
     if (bitcoinCount - tower->getCost() >= 0)
     {
+        bitcoinCount -= tower->getCost(); // Pay amount for tower.
+
         tileGrid[row][col]->addTower(tower);
         gameScene->addItem(tower);
-
         towers.append(tower);
 
-        bitcoinCount -= tower->getCost(); // Pay amount for tower.
+        connect(tower, &Tower::destroyTower, this, &GameMapDialog::destroyTower);
+
+        // Connect tower attacking signal to tiles that are in range:
+        int range = tower->getRange();
+        for (int i = row-2*range; i <= row+2*range; ++i)
+        {
+            for (int j = col-2*range; j <= col+2*range; ++j)
+            {
+                if (i >= 0 && i < 2*mapHeight && j >= 0 && j < 2*mapWidth)
+                    if (tileGrid[i][j] != nullptr)
+                        connect(tower, &Tower::Attack, tileGrid[i][j], &Tile::damageEnemy);
+            }
+        }
+
+        floodFill(); // Recalculate shortest paths.
     }
     else
     {
-        tower->deleteLater();
+        delete tower;
     }
 }
 
@@ -298,9 +612,11 @@ void GameMapDialog::sellTower(int row, int col) // Sell tower at tile that sent 
     Tower *tower = tileGrid[row][col]->removeTower();
     if (tower != nullptr)
     {
-        bitcoinCount += tower->getCost(); // Receive back amount payed for tower.
+        bitcoinCount += tower->getCost(); // Receive back amount paid for tower.
         towers.removeOne(tower);
         tower->deleteLater();
+
+        floodFill(); // Recalculate shortest paths.
     }
 }
 
@@ -308,6 +624,26 @@ void GameMapDialog::upgradeTower(int row, int col) // Upgrade tower at tile that
 {
     Tower *tower = tileGrid[row][col]->tower;
     bitcoinCount = tower->Upgrade(bitcoinCount);
+}
+
+void GameMapDialog::destroyTower(int row, int col)
+{
+    Tower *tower = tileGrid[row][col]->removeTower();
+    if (tower != nullptr)
+    {
+        towers.removeOne(tower);
+        tower->deleteLater();
+        floodFill(); // Recalculate shortest paths.
+    }
+}
+
+void GameMapDialog::killEnemy(Enemy *e)
+{
+    if (enemies.removeOne(e))
+    {
+        bitcoinCount += e->getBitcoinReward();
+        e->deleteLater();
+    }
 
 }
 
@@ -396,104 +732,26 @@ void GameMapDialog::startNextWave()
     spawnTimer->start(spawnInterval);
 }
 
-QVector<QPointF> GameMapDialog::findPath(const QPointF& start, const QPointF& target)
+
+void GameMapDialog::attackAnimation(Tower* tower, Enemy* enemy)
 {
-    int startX = static_cast<int>(std::round(start.x() / tileSize));
-    int startY = static_cast<int>(std::round(start.y() / (tileSize / 2)));
-    int targetX = static_cast<int>(target.x() / tileSize);
-    int targetY = static_cast<int>(target.y() / (tileSize / 2));
+    QPen pen(Qt::red);
+    pen.setWidth(1);
+    pen.setStyle(Qt::DashLine);
+    float x1 = tower->x();
+    float x2 = enemy->x();
+    float y1 = tower->y();
+    float y2 = enemy->y();
+    QGraphicsLineItem* line = gameScene->addLine(QLineF(x1, y1, x2, y2), pen);
+    line->setZValue(1000);
+    gameScene->update();
+}
 
-    startX = qBound(0, startX, 2 * mapWidth - 1);
-    startY = qBound(0, startY, 2 * mapHeight - 1);
-    targetX = qBound(0, targetX, 2 * mapWidth - 1);
-    targetY = qBound(0, targetY, 2 * mapHeight - 1);
-
-    QVector<QVector<int>> distances(2 * mapHeight, QVector<int>(2 * mapWidth, std::numeric_limits<int>::max()));
-    QVector<QVector<QPoint>> previous(2 * mapHeight, QVector<QPoint>(2 * mapWidth, QPoint(-1, -1)));
-    QVector<QPoint> unvisited;
-
-    for (int y = 0; y < 2 * mapHeight; ++y)
-        for (int x = 0; x < 2 * mapWidth; ++x)
-            unvisited.append(QPoint(x, y));
-
-    distances[startY][startX] = 0;
-
-    while (!unvisited.isEmpty()) {
-        int minDist = std::numeric_limits<int>::max();
-        int minIndex = -1;
-        for (int i = 0; i < unvisited.size(); ++i) {
-            QPoint node = unvisited[i];
-            int dist = distances[node.y()][node.x()];
-            if (dist < minDist) {
-                minDist = dist;
-                minIndex = i;
-            }
-        }
-        if (minIndex == -1)
-            break;
-
-        QPoint current = unvisited[minIndex];
-        unvisited.remove(minIndex);
-
-        int currX = current.x();
-        int currY = current.y();
-
-        if (currX == targetX && currY == targetY)
-            break;
-
-        QVector<QPoint> neighbors = {QPoint(currX, currY - 1), QPoint(currX, currY + 1), QPoint(currX - 1, currY), QPoint(currX + 1, currY)};
-        for (const QPoint& neighbor : neighbors) {
-            int nx = neighbor.x();
-            int ny = neighbor.y();
-            if (nx < 0 || nx >= 2 * mapWidth || ny < 0 || ny >= 2 * mapHeight)
-                continue;
-
-            int barrierY = 2 * mapHeight - ny - 1;
-            if (barrierGrid[barrierY][nx] != 0)
-                continue;
-
-            if (!unvisited.contains(neighbor))
-                continue;
-
-            int altDist = distances[currY][currX] + 1;
-            if (altDist < distances[ny][nx]) {
-                distances[ny][nx] = altDist;
-                previous[ny][nx] = current;
-            }
-        }
+void GameMapDialog::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Escape && !pauseMenu) {
+        pauseGame();
     }
-
-    QVector<QPointF> path;
-    QPoint step(targetX, targetY);
-
-    if (distances[targetY][targetX] == std::numeric_limits<int>::max()) {
-        return path;
-    }
-
-    QRectF sceneRect = gameScene->sceneRect();
-    const qreal maxX = 450.0;
-
-    while (step.x() != -1 && step.y() != -1 && !(step.x() == startX && step.y() == startY)) {
-        qreal px = step.x() * tileSize + tileSize / 2;
-        qreal py = step.y() * (tileSize / 2) + tileSize / 4;
-        px = qBound(sceneRect.left(), px, qMin(sceneRect.right(), maxX));
-        py = qBound(sceneRect.top(), py, sceneRect.bottom());
-        path.prepend(QPointF(px, py));
-        step = previous[step.y()][step.x()];
-    }
-
-    qreal startPx = startX * tileSize + tileSize / 2;
-    qreal startPy = startY * (tileSize / 2) + tileSize / 4;
-    startPx = qBound(sceneRect.left(), startPx, qMin(sceneRect.right(), maxX));
-    startPy = qBound(sceneRect.top(), startPy, sceneRect.bottom());
-    path.prepend(QPointF(startPx, startPy));
-
-    for (int i = 0; i < path.size() - 1; ++i) {
-        QGraphicsLineItem* line = gameScene->addLine(path[i].x(), path[i].y(), path[i + 1].x(), path[i + 1].y(), QPen(Qt::green, 2));
-        line->setZValue(8);
-    }
-
-    return path;
 }
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)
@@ -506,8 +764,7 @@ void GameMapDialog::keyPressEvent(QKeyEvent *event)
 void GameMapDialog::pauseGame()
 {
     if (!pauseMenu) {
-        waveTimer->stop();
-        updateTimer->stop();
+        gameTick->stop();
         pauseMenu = new PauseMenuDialog(this);
         connect(pauseMenu, &PauseMenuDialog::resumeGame, this, &GameMapDialog::onResumeGame);
         connect(pauseMenu, &PauseMenuDialog::saveGame, this, &GameMapDialog::onSaveGame);
@@ -518,8 +775,9 @@ void GameMapDialog::pauseGame()
 
 void GameMapDialog::resumeGame()
 {
-    waveTimer->start();
-    updateTimer->start();
+    gameTick->start();
+    enemyTick->start();
+    // waveTimer->start();
     pauseMenu = nullptr;
 }
 
@@ -534,17 +792,95 @@ void GameMapDialog::onSaveGame()
     if (saveGameToFile("savegame.txt")) {
         QFile file("savegame.txt");
         qDebug() << "Saving to:" << file.fileName();
-        qDebug() << "Game saved successfully.";
-    } else {
-        qDebug() << "Failed to save game.";
-    }
-    resumeGame();
+
 }
+
+void GameMapDialog::cleanState()
+{
+    // Remove and delete all enemies
+    for (Enemy* enemy : qAsConst(enemies)) {
+        gameScene->removeItem(enemy);
+        delete enemy;
+    }
+    enemies.clear();
+
+    // Remove and delete all towers
+    for (Tower* tower : qAsConst(towers)) {
+        gameScene->removeItem(tower);
+        delete tower;
+    }
+    towers.clear();
+
+    // Remove and delete all tiles
+    for (int r = 0; r < 2 * mapHeight; ++r) {
+        for (int c = 0; c < 2 * mapWidth; ++c) {
+            if (tileGrid[r][c] != nullptr) {
+                gameScene->removeItem(tileGrid[r][c]);
+                delete tileGrid[r][c];
+                tileGrid[r][c] = nullptr;
+            }
+        }
+    }
+}
+
+bool GameMapDialog::saveGameToFile(const QString& filename)
+{
+    savedBitcoinCount = bitcoinCount; // Save current bitcoin count
+    QString saveDirPath = QCoreApplication::applicationDirPath() + "/saves";
+    QDir saveDir(saveDirPath);
+    if (!saveDir.exists()) {
+        saveDir.mkpath(".");
+    }
+    QString filePath = saveDirPath + "/" + filename;
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qDebug() << "Cannot open file for saving:" << filePath;
+        return false;
+    }
+    QTextStream out(&file);
+
+    out << "MapType: " << (int)mapType << "\n";
+    out << "Difficulty: " << (int)gameDifficulty << "\n";
+    out << "BitcoinCount: " << bitcoinCount << "\n";
+    out << "CurrentWave: " << currentWave << "\n";
+
+    out << "\nEnemies:\n";
+    for (Enemy* enemy : qAsConst(enemies)) {
+        out << (int)enemy->getType() << " "
+            << enemy->pos().x() << " "
+            << enemy->pos().y() << " "
+            << enemy->getHealth() << "\n";
+    }
+
+    out << "\nTowers:\n";
+    for (Tower* tower : qAsConst(towers)) {
+        int row = 0;
+        int col = 0;
+        bool found = false;
+        for (int r = 0; r < 2*mapHeight && !found; ++r) {
+            for (int c = 0; c < 2*mapWidth && !found; ++c) {
+                if (tileGrid[r][c] && tileGrid[r][c]->tower == tower) {
+                    row = r;
+                    col = c;
+                    found = true;
+                }
+            }
+        }
+        out << (int)tower->type << " " << row << " " << col << " " << tower->towerLevel << "\n";
+    }
+
+    file.close();
+    qDebug() << "Game saved successfully to:" << filePath;
+    return true;
+}
+
 
 void GameMapDialog::onExitGame()
 {
     close();
 }
+
 
 GameMapDialog::~GameMapDialog()
 {
@@ -635,7 +971,7 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
 
 bool GameMapDialog::loadGameFromFile(const QString& filename)
 {
-    // Construct path relative to application directory
+
     QString filePath = QCoreApplication::applicationDirPath() + "/saves/" + filename;
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -777,7 +1113,6 @@ bool GameMapDialog::loadGameFromFile(const QString& filename)
     // Restart timers
     waveTimer->start(10000);
     updateTimer->start(125);
-
     file.close();
     return true;
 }

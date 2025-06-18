@@ -18,6 +18,10 @@ private slots:
     void onNewGameClicked();
     void onLoadGameClicked();
 
+signals:
+    void loadGameRequested(const QString& filename); // Updated signal with filename
+
+
 private:
     QPushButton *newGameBtn;
     QPushButton *loadGameBtn;
