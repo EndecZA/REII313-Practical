@@ -47,12 +47,15 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     baseCol = -1;
 
     currentWave = 0;
-    enemiesPerWave = 5;
-    enemiesToSpawn = 0;
+    totalEnemiesPerWave = 5;
+    //enemiesToSpawn = 0;
 
-    // NOTE: Reimplement! This timer should be the pause between enemy spawns.
-//    waveTimer = new QTimer(this);
-//    connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::startNextWave);
+    currentWave = 0;
+    totalEnemiesPerWave = 5; // Set the number of enemies per wave
+    waveTimer = new QTimer(this);
+    connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::spawnWave);
+    waveTimer->start(10000);
+
 
     gameTick = new QTimer(this);
     connect(gameTick, &QTimer::timeout, this, &GameMapDialog::updateGame);
@@ -70,17 +73,17 @@ void GameMapDialog::setDifficulty(int dif)
     {
         case 0:
             gameDifficulty = easy;
-            enemiesPerWave = 3;
+            totalEnemiesPerWave = 3;
             break;
         default:
             [[fallthrough]];
         case 1:
             gameDifficulty = medium;
-            enemiesPerWave = 5;
+            totalEnemiesPerWave = 5;
             break;
         case 2:
             gameDifficulty = hard;
-            enemiesPerWave = 7;
+            totalEnemiesPerWave = 7;
             break;
     }
 }
@@ -237,16 +240,26 @@ void GameMapDialog::drawMap()
     }
     bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
 
+    QGraphicsTextItem *waveText = new QGraphicsTextItem("Wave: 0");
+    waveText->setFont(QFont("Arial", 10));
+    waveText->setDefaultTextColor(Qt::white);
+    gameScene->addItem(waveText);
+    waveText->setPos(5, 50);
+
     bitcoinGroup = new QGraphicsItemGroup();
     bitcoinGroup->addToGroup(bitcoinBackground);
     bitcoinGroup->addToGroup(bitcoinIcon);
     bitcoinGroup->addToGroup(bitcoinText);
+    bitcoinGroup->addToGroup(waveText);
     bitcoinGroup->setZValue(bitcoinGroup->y() + bitcoinGroup->boundingRect().width());
     gameScene->addItem(bitcoinGroup);
 
     bitcoinBackground->setPos(5, 5);
     bitcoinIcon->setPos(10 + 5, 8);
     bitcoinText->setPos(10 + 32 + 8, 10);
+
+
+
 
     // Build base tower and run flooding algorithm:
     if (baseRow != -1 && baseCol != -1 && !spawnPoints.isEmpty()) // Map read successfully.
@@ -288,9 +301,9 @@ void GameMapDialog::floodFill()
     }
 
     // Reset all tiles:
-    for (int i=0; i<2*mapHeight; ++i)
+    for (int i = 0; i < 2 * mapHeight; ++i)
     {
-        for (int j=0; j<2*mapWidth; ++j)
+        for (int j = 0; j < 2 * mapWidth; ++j)
         {
             if (tileGrid[i][j] != nullptr)
             {
@@ -313,175 +326,191 @@ void GameMapDialog::floodFill()
         int dist = tile->dist;
 
         // Iterate over all eight adjacent tiles:
-        for (int i=0; i<8; ++i)
+        for (int i = 0; i < 8; ++i)
         {
             int adjRow = row;
             int adjCol = col;
             bool addToQueue = true;
             switch (i)
             {
-                // Prioritize straight moves:
                 case 0: // NW:
                     --adjRow;
                     --adjCol;
-                break;
+                    break;
                 case 1: // SW:
                     ++adjRow;
                     --adjCol;
-                break;
+                    break;
                 case 2: // SE:
                     ++adjRow;
                     ++adjCol;
-                break;
+                    break;
                 case 3: // NE:
                     --adjRow;
                     ++adjCol;
-                break;
-                // Handle diagonal movement:
+                    break;
                 case 4: // N:
                     adjRow -= 2;
-
-                    // Don't allow diagonal move if a barrier is in the way:
-                    if (adjRow+1 >=0 && adjRow+1 < 2*mapHeight && adjCol-1 >= 0 && adjCol-1 < 2*mapWidth)
+                    if (adjRow + 1 >= 0 && adjRow + 1 < 2 * mapHeight && adjCol - 1 >= 0 && adjCol - 1 < 2 * mapWidth)
                     {
-                        Tile *tile = tileGrid[adjRow+1][adjCol-1];
-                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                        Tile* t = tileGrid[adjRow + 1][adjCol - 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
                             addToQueue = false;
                     }
-
-                    if (adjRow+1 >=0 && adjRow+1 < 2*mapHeight && adjCol+1 >= 0 && adjCol+1 < 2*mapWidth)
+                    if (adjRow + 1 >= 0 && adjRow + 1 < 2 * mapHeight && adjCol + 1 >= 0 && adjCol + 1 < 2 * mapWidth)
                     {
-                        Tile *tile = tileGrid[adjRow+1][adjCol+1];
-                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                        Tile* t = tileGrid[adjRow + 1][adjCol + 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
                             addToQueue = false;
                     }
-                break;
+                    break;
                 case 5: // W:
                     adjCol -= 2;
-
-                    // Don't allow diagonal move if a barrier is in the way:
-                    if (adjRow-1 >=0 && adjRow-1 < 2*mapHeight && adjCol+1 >= 0 && adjCol+1 < 2*mapWidth)
+                    if (adjRow - 1 >= 0 && adjRow - 1 < 2 * mapHeight && adjCol + 1 >= 0 && adjCol + 1 < 2 * mapWidth)
                     {
-                        Tile *tile = tileGrid[adjRow-1][adjCol+1];
-                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                        Tile* t = tileGrid[adjRow - 1][adjCol + 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
                             addToQueue = false;
                     }
-
-                    if (adjRow+1 >=0 && adjRow+1 < 2*mapHeight && adjCol+1 >= 0 && adjCol+1 < 2*mapWidth)
+                    if (adjRow + 1 >= 0 && adjRow + 1 < 2 * mapHeight && adjCol + 1 >= 0 && adjCol + 1 < 2 * mapWidth)
                     {
-                        Tile *tile = tileGrid[adjRow+1][adjCol+1];
-                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                        Tile* t = tileGrid[adjRow + 1][adjCol + 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
                             addToQueue = false;
                     }
-                break;
+                    break;
                 case 6: // S:
                     adjRow += 2;
-
-                    // Don't allow diagonal move if a barrier is in the way:
-                    if (adjRow-1 >=0 && adjRow-1 < 2*mapHeight && adjCol-1 >= 0 && adjCol-1 < 2*mapWidth)
+                    if (adjRow - 1 >= 0 && adjRow - 1 < 2 * mapHeight && adjCol - 1 >= 0 && adjCol - 1 < 2 * mapWidth)
                     {
-                        Tile *tile = tileGrid[adjRow-1][adjCol-1];
-                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                        Tile* t = tileGrid[adjRow - 1][adjCol - 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
                             addToQueue = false;
                     }
-
-                    if (adjRow-1 >=0 && adjRow-1 < 2*mapHeight && adjCol+1 >= 0 && adjCol+1 < 2*mapWidth)
+                    if (adjRow - 1 >= 0 && adjRow - 1 < 2 * mapHeight && adjCol + 1 >= 0 && adjCol + 1 < 2 * mapWidth)
                     {
-                        Tile *tile = tileGrid[adjRow-1][adjCol+1];
-                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                        Tile* t = tileGrid[adjRow - 1][adjCol + 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
                             addToQueue = false;
                     }
-                break;
+                    break;
                 case 7: // E:
                     adjCol += 2;
-
-                    // Don't allow diagonal move if a barrier is in the way:
-                    if (adjRow-1 >=0 && adjRow-1 < 2*mapHeight && adjCol-1 >= 0 && adjCol-1 < 2*mapWidth)
+                    if (adjRow - 1 >= 0 && adjRow - 1 < 2 * mapHeight && adjCol - 1 >= 0 && adjCol - 1 < 2 * mapWidth)
                     {
-                        Tile *tile = tileGrid[adjRow-1][adjCol-1];
-                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                        Tile* t = tileGrid[adjRow - 1][adjCol - 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
                             addToQueue = false;
                     }
-
-                    if (adjRow+1 >=0 && adjRow+1 < 2*mapHeight && adjCol-1 >= 0 && adjCol-1 < 2*mapWidth)
+                    if (adjRow + 1 >= 0 && adjRow + 1 < 2 * mapHeight && adjCol - 1 >= 0 && adjCol - 1 < 2 * mapWidth)
                     {
-                        Tile *tile = tileGrid[adjRow+1][adjCol-1];
-                        if (tile == nullptr || tile->isBarrier || tile->hasTower)
+                        Tile* t = tileGrid[adjRow + 1][adjCol - 1];
+                        if (t == nullptr || t->isBarrier || t->hasTower)
                             addToQueue = false;
                     }
-                break;
+                    break;
             }
 
-            // Check whether the adjacent tile is valid and can be visited from the current node:
-            if (adjRow < 0 || adjRow >= 2*mapHeight || adjCol < 0 || adjCol >= 2*mapWidth)
-                addToQueue = false; // Break if the index is out of bounds.
+            if (adjRow < 0 || adjRow >= 2 * mapHeight || adjCol < 0 || adjCol >= 2 * mapWidth)
+                addToQueue = false;
             else if (tileGrid[adjRow][adjCol] == nullptr || tileGrid[adjRow][adjCol]->isBarrier || tileGrid[adjRow][adjCol]->hasTower)
-                addToQueue = false; // Break if tile is inaccessible by enemies.
+                addToQueue = false;
             else if (tileGrid[adjRow][adjCol]->dist != -1)
-                addToQueue = false; // Break if tile has already been visited.
+                addToQueue = false;
 
             if (addToQueue)
             {
-                tileGrid[adjRow][adjCol]->dist = dist+1; // Update distance to destination.
-                tileGrid[adjRow][adjCol]->next = tile; // Store pointer to next tile.
-                queue.enqueue(tileGrid[adjRow][adjCol]); // Add adjacent tile to queue.
+                tileGrid[adjRow][adjCol]->dist = dist + 1;
+                tileGrid[adjRow][adjCol]->next = tile;
+                queue.enqueue(tileGrid[adjRow][adjCol]);
             }
-        }
-    }
-
-
-
-    // Ensure that enemies can allways reach the base:  
-    Tile *tile = spawnPoints.at(0);
-    if (tile == nullptr)
-    {
-        qDebug() << "Invalid spawn point chosen.";
-        return;
-    }
-    else
-    {
-        while (tile->next != nullptr)
-        {
-            tile = tile->next;
-        }
-        if (!tile->isBase && !towers.isEmpty())
-        {
-            qDebug() << "Base has been closed off. Selling last added tower.";
-            Tile *tile = towers.last()->tile;
-            sellTower(tile->row, tile->col);
         }
     }
 
     qDebug() << "Game map flooded.";
+}
 
-    // TEST ENEMY IMPLEMENTATION: TEMP!!
-    if (!enemies.isEmpty())
+
+// New slot for spawning waves based on your pattern and increasing total enemies per wave
+void GameMapDialog::spawnWave()
+{
+    if (spawnPoints.isEmpty())
     {
-        for (Enemy* &enemy : enemies)
-        {
-            enemy->setState(Dying);
-        }
+        qDebug() << "No spawn points available to spawn enemies.";
+        return;
     }
 
-    Enemy* enemy1 = new Enemy(Wizard);
-    Tile *spawnTile = spawnPoints.dequeue(); // Note: pop tile from queue and then queue it again to cycle over spawn points.
-    spawnTile->addEnemy(enemy1);
-    connect(enemy1, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
-    enemies.append(enemy1);
-    gameScene->addItem(enemy1);
-    spawnPoints.enqueue(spawnTile);
+    Tile* spawnTile = spawnPoints.dequeue();
+    if (spawnTile == nullptr)
+    {
+        qDebug() << "Invalid spawn tile for spawning enemies.";
+        return;
+    }
 
-    spawnTile = spawnPoints.dequeue();
-    Enemy* enemy2 = new Enemy(Orcastor);
-    spawnTile->addEnemy(enemy2);
-    connect(enemy2, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
-    enemies.append(enemy2);
-    gameScene->addItem(enemy2);
+    QVector<EnemyType> waveEnemies;
 
-    spawnPoints.enqueue(spawnTile);
-    // TEMP END.
+    // Define enemy waves:
+    switch (currentWave)
+    {
+        case 0: // Wave 1 (index 0):
+            // 3 Skeletons
+            waveEnemies.fill(Skeleton, 3);
+            break;
+        case 1: // Wave 2:
+            // 4 Skeletons and 1 Skeleton Archer
+            waveEnemies.fill(Skeleton, 4);
+            waveEnemies.append(Skeleton_Archer);
+            break;
+        case 2: // Wave 3:
+            // 6 Skeletons and 1 Armoured Skeleton
+            waveEnemies.fill(Skeleton, 6);
+            waveEnemies.append(Armoured_Skeleton);
+            break;
+        case 3: // Wave 4:
+            // 4 skeletons and 4 armoured skeletons
+            waveEnemies.fill(Skeleton, 4);
+            waveEnemies.append(Armoured_Skeleton);
+            waveEnemies.append(Armoured_Skeleton);
+            waveEnemies.append(Armoured_Skeleton);
+            waveEnemies.append(Armoured_Skeleton);
+            break;
+        case 4: // Wave 5:
+            // 10 Orcs
+            waveEnemies.fill(Orc, 10);
+            break;
+        default:
+            // Wave 6+ random enemies with totalEnemiesPerWave increasing by 2 each wave
+            waveEnemies.clear();
+            int enemiesToSpawn = totalEnemiesPerWave; // Use the updated total enemies tracker
+            for (int i = 0; i < enemiesToSpawn; ++i)
+            {
+                int enemyTypeInt = rand() % 12; // Random enemy type between 0 and 11 (all enemy types)
+                waveEnemies.append(static_cast<EnemyType>(enemyTypeInt));
+            }
+            break;
+    }
 
+    // Spawn each enemy on the spawnTile
+    for (EnemyType etype : qAsConst(waveEnemies))
+    {
+        Enemy* enemy = new Enemy(etype);
+        spawnTile->addEnemy(enemy);
+        connect(enemy, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
+        enemies.append(enemy);
+        gameScene->addItem(enemy);
+    }
+
+    spawnPoints.enqueue(spawnTile); // Re-enqueue spawn point to cycle spawn locations
+
+    currentWave++; // Increment wave
+    totalEnemiesPerWave += 2; // Increase enemies per wave by 2 for next wave
+
+
+
+    qDebug() << "Spawned Wave" << currentWave << "with" << waveEnemies.size() << "enemies.";
 }
+
+
 
 void GameMapDialog::updateGame()
 {
@@ -492,6 +521,7 @@ void GameMapDialog::updateGame()
 
     gameScene->update();
     updateBitcoinDisplay();
+    updateWaveDisplay();
 }
 
 void GameMapDialog::tickEnemies()
@@ -501,6 +531,16 @@ void GameMapDialog::tickEnemies()
         enemy->Tick();
     }
 }
+
+void GameMapDialog::updateWaveDisplay()
+{
+    if (!waveText)
+        return;
+
+    waveText->setPlainText(QString("Wave: %1").arg(currentWave));
+    waveText->setPos(5, 50);
+}
+
 
 void GameMapDialog::updateBitcoinDisplay()
 {
@@ -774,10 +814,10 @@ bool GameMapDialog::loadGameFromFile(const QString& filename) {
             if (gridX >= 0 && gridX < 2 * mapWidth && gridY >= 0 && gridY < 2 * mapHeight &&
                 tileGrid[gridY][gridX] != nullptr && mapGrid[gridY][gridX] != 0) {
                 Enemy* enemy = new Enemy(etype);
-                enemy->setPos(x, y);
                 enemy->setHealth(health);
                 enemy->setJustLoaded(true);
                 enemies.append(enemy);
+                tileGrid[gridY][gridX]->addEnemy(enemy);
                 gameScene->addItem(enemy);
             }
         } else if (readingTowers) {
