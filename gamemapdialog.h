@@ -79,6 +79,7 @@ private:
     static const int mapWidth = 15;
     static const int mapHeight = 30;
     static const int frameRate = 8; // Framerate in FPS.
+    static const int startingBitcoins = 300;
 
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;

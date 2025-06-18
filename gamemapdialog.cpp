@@ -43,7 +43,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameDifficulty = medium;
     mapType = map1;
     isMultiplayer = false;
-    bitcoinCount = 200; // SUBJECT TO CHANGE!
+    bitcoinCount = startingBitcoins;
     baseRow = -1;
     baseCol = -1;
 
@@ -814,8 +814,8 @@ bool GameMapDialog::loadGameFromFile(const QString& filename) {
     // Initialize default values in case of partial file
     mapType = map1;
     gameDifficulty = medium;
-    bitcoinCount = 200;
-    savedBitcoinCount = 200;
+    bitcoinCount = startingBitcoins;
+    savedBitcoinCount = startingBitcoins;
     currentWave = 0;
 
     bool readingEnemies = false;
