@@ -6,8 +6,9 @@
 #include <QObject>
 #include <QPixmap>
 #include <cmath>
+#include <QMetaMethod>
 
-#include "tower.h"
+//#include "tower.h"
 
 class GameMapDialog;
 
@@ -61,7 +62,7 @@ private:
     bool justLoaded; // Added flag to mark enemy as just loaded from save
 
 signals:
-    void Attack(int damage); // Attack any towers that are in range.
+    void Attack(Enemy*); // Attack any towers that are in range.
     void moveEnemy(Enemy*); // Move enemy to new tile.
     void killEnemy(Enemy*); // Signal to remove enemy from the game map.
 

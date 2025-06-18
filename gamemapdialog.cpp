@@ -556,9 +556,10 @@ void GameMapDialog::updateBitcoinDisplay()
 void GameMapDialog::buildTower(towerType type, int row, int col)
 {
     Tower *tower = new Tower(type);
-    if (bitcoinCount - tower->getCost() >= 0)
+    if (bitcoinCount - tower->getCost() >= 0 || type == base)
     {
-        bitcoinCount -= tower->getCost(); // Pay amount for tower.
+        if (type != base)
+            bitcoinCount -= tower->getCost(); // Pay amount for tower.
 
         tileGrid[row][col]->addTower(tower);
         gameScene->addItem(tower);
@@ -584,7 +585,6 @@ void GameMapDialog::buildTower(towerType type, int row, int col)
                             if (r <= 2*range) // Connect tiles that are a radius range away from the tower.
                             {
                                 connect(tower, &Tower::Attack, tileGrid[i][j], &Tile::damageEnemy);
-                                qDebug() << "Connected tile at:" << i << ";" << j << "with tower at:" << row << ";" << col;
                             }
                         }
                     }
@@ -649,11 +649,11 @@ void GameMapDialog::attackAnimation(Tower* tower, Enemy* enemy)
     float x1 = tower->x() + tileSize/2;
     float y1 = tower->y() - tileSize/2;
     float x2 = enemy->x() + tileSize/2;
-    float y2 = enemy->y();
+    float y2 = enemy->y() + tileSize/4;
     QGraphicsLineItem* line = gameScene->addLine(QLineF(x1, y1, x2, y2), pen);
     line->setZValue(1000);
 
-    QTimer::singleShot(500, this, [line, this]() {
+    QTimer::singleShot(250, this, [line, this]() {
         if (gameScene) {
             gameScene->removeItem(line);
         }
