@@ -14,6 +14,7 @@
 #include <QQueue>
 #include <QDir>
 #include <QMessageBox>
+#include <QThread>
 #include <QCoreApplication>
 
 GameMapDialog::GameMapDialog(QWidget *parent)
@@ -55,7 +56,6 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     waveTimer = new QTimer(this);
     connect(waveTimer, &QTimer::timeout, this, &GameMapDialog::spawnWave);
     waveTimer->start(10000);
-
 
     gameTick = new QTimer(this);
     connect(gameTick, &QTimer::timeout, this, &GameMapDialog::updateGame);
@@ -241,11 +241,12 @@ void GameMapDialog::drawMap()
     }
     bitcoinIcon = new QGraphicsPixmapItem(bitcoinPixmap.scaled(32, 32, Qt::KeepAspectRatio));
 
-    QGraphicsTextItem *waveText = new QGraphicsTextItem("Wave: 0");
+    waveText = new QGraphicsTextItem("Wave: 0");
     waveText->setFont(QFont("Arial", 10));
     waveText->setDefaultTextColor(Qt::white);
     gameScene->addItem(waveText);
     waveText->setPos(5, 50);
+
 
     bitcoinGroup = new QGraphicsItemGroup();
     bitcoinGroup->addToGroup(bitcoinBackground);
@@ -441,76 +442,80 @@ void GameMapDialog::spawnWave()
         return;
     }
 
-    Tile* spawnTile = spawnPoints.dequeue();
-    if (spawnTile == nullptr)
-    {
-        qDebug() << "Invalid spawn tile for spawning enemies.";
-        return;
-    }
+    waveEnemies.clear();
 
-    QVector<EnemyType> waveEnemies;
-
-    // Define enemy waves:
+    // Define enemy waves by currentWave:
     switch (currentWave)
     {
-        case 0: // Wave 1 (index 0):
-            // 3 Skeletons
+        case 0: // Wave 1: 3 Skeletons
             waveEnemies.fill(Skeleton, 3);
             break;
-        case 1: // Wave 2:
-            // 4 Skeletons and 1 Skeleton Archer
+        case 1: // Wave 2: 4 Skeletons + 1 Skeleton Archer
             waveEnemies.fill(Skeleton, 4);
             waveEnemies.append(Skeleton_Archer);
             break;
-        case 2: // Wave 3:
-            // 6 Skeletons and 1 Armoured Skeleton
+        case 2: // Wave 3: 6 Skeletons + 1 Armoured Skeleton
             waveEnemies.fill(Skeleton, 6);
             waveEnemies.append(Armoured_Skeleton);
             break;
-        case 3: // Wave 4:
-            // 4 skeletons and 4 armoured skeletons
+        case 3: // Wave 4: 4 Skeletons + 4 Armoured Skeletons
             waveEnemies.fill(Skeleton, 4);
             waveEnemies.append(Armoured_Skeleton);
             waveEnemies.append(Armoured_Skeleton);
             waveEnemies.append(Armoured_Skeleton);
             waveEnemies.append(Armoured_Skeleton);
             break;
-        case 4: // Wave 5:
-            // 10 Orcs
+        case 4: // Wave 5: 10 Orcs
             waveEnemies.fill(Orc, 10);
             break;
-        default:
-            // Wave 6+ random enemies with totalEnemiesPerWave increasing by 2 each wave
-            waveEnemies.clear();
-            int enemiesToSpawn = totalEnemiesPerWave; // Use the updated total enemies tracker
+        default: // Wave 6+: random enemies, totalEnemiesPerWave increases by 2 per wave
+        {
+            int enemiesToSpawn = totalEnemiesPerWave;
             for (int i = 0; i < enemiesToSpawn; ++i)
             {
-                int enemyTypeInt = rand() % 12; // Random enemy type between 0 and 11 (all enemy types)
+                int enemyTypeInt = rand() % 12;
                 waveEnemies.append(static_cast<EnemyType>(enemyTypeInt));
             }
             break;
+        }
     }
 
-    // Spawn each enemy on the spawnTile
+    waveText->setPlainText(QString("Wave: %1").arg(currentWave + 1)); // Update wave number displayed
+
+
     for (EnemyType etype : qAsConst(waveEnemies))
     {
+        if (spawnPoints.isEmpty())
+        {
+            qDebug() << "Spawn points empty during enemy spawning!";
+            break;
+        }
+
+        Tile* spawnTile = spawnPoints.dequeue();
+        if (spawnTile == nullptr)
+        {
+            qDebug() << "Invalid spawn tile during enemy spawning";
+            spawnPoints.enqueue(spawnTile);
+            continue;
+        }
+
         Enemy* enemy = new Enemy(etype);
         spawnTile->addEnemy(enemy);
         connect(enemy, &Enemy::killEnemy, this, &GameMapDialog::killEnemy);
         enemies.append(enemy);
         gameScene->addItem(enemy);
+
+        spawnPoints.enqueue(spawnTile);
+
+        QCoreApplication::processEvents(); // Keep UI responsive
+        QThread::msleep(50); // Delay 300ms between each enemy spawn to avoid overlap visually
     }
 
-    spawnPoints.enqueue(spawnTile); // Re-enqueue spawn point to cycle spawn locations
-
-    currentWave++; // Increment wave
-    totalEnemiesPerWave += 2; // Increase enemies per wave by 2 for next wave
-
-
+    currentWave++;
+    totalEnemiesPerWave += 2;
 
     qDebug() << "Spawned Wave" << currentWave << "with" << waveEnemies.size() << "enemies.";
 }
-
 
 
 void GameMapDialog::updateGame()
@@ -522,7 +527,7 @@ void GameMapDialog::updateGame()
 
     gameScene->update();
     updateBitcoinDisplay();
-    updateWaveDisplay();
+    //updateWaveDisplay();
 }
 
 void GameMapDialog::tickEnemies()
