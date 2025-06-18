@@ -27,15 +27,21 @@ public:
     int getDamage();
     int getRange();
     int getBitcoinReward();
+    void takeDamage(int damage);
 
     void setDest(int x, int y); // Set new destination position.
     void Tick(); // Tick function for enemy.
+
 
     void setPath(const QVector<QPointF>& newPath);
     void setJustLoaded(bool value) { justLoaded = value; }
     bool isJustLoaded() const { return justLoaded; }
 
 
+    void setHealth(int h) { health = h; } // Setter added to set health on load
+
+    void setJustLoaded(bool value);
+    bool isJustLoaded() const;
 
 private:
     static const int spriteSize = 100;
@@ -58,13 +64,12 @@ private:
     int bitcoinReward;
     bool isMirrored;
 
+    bool justLoaded; // Added flag to mark enemy as just loaded from save
+
 signals:
     void Attack(int damage); // Attack any towers that are in range.
     void moveEnemy(Enemy*); // Move enemy to new tile.
     void killEnemy(Enemy*); // Signal to remove enemy from the game map.
-
-public slots:
-    void takeDamage(int damage);
 
 };
 

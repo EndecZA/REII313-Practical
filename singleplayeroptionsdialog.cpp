@@ -74,7 +74,9 @@ void SinglePlayerOptionsDialog::onNewGameClicked()
 
 void SinglePlayerOptionsDialog::onLoadGameClicked()
 {
-    qDebug() << "SinglePlayerOptionsDialog: Load Game selected";
+    qDebug() << "Load Game button clicked.";
+    emit loadGameRequested("savegame.txt");
     accept();
-
 }
+
+

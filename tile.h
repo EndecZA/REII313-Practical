@@ -39,12 +39,14 @@ private:
     static const int mapHeight = 30;
     int pos[2];
     QGraphicsPixmapItem *barrier; // QGraphicsPixmapItem whose parent item is the Tile itself.
+    bool isSpawn;
 
     void mousePressEvent(QGraphicsSceneMouseEvent*); // Handle click events.
 
 
 public slots:
     void fetchNext(Enemy*); // Remove enemy from list and add to next tile's list.
+    void damageEnemy(int damage, int piercing, Tower*); // Damage enemies at tile.
     void killEnemy(Enemy*); // Delete enemy.
 //    void attackEnemy(int damage); // Attack enemies contained in tile.
 
@@ -52,6 +54,7 @@ signals:
     void buildTower(towerType, int row, int col); // Send signal to build tower on the map.
     void sellTower(int row, int col); // Send signal to sell the tower.
     void upgradeTower(int row, int col); // Send signal to upgrade tower.
+    void attackAnimation(Tower*, Enemy*);
 
 };
 

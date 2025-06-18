@@ -3,7 +3,7 @@
 
 const double PI = std::atan(1.0) * 4; // Calculate Pi.
 
-Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem()
+Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
 {
     setOffset(-spriteSize/2 + 16, -spriteSize/2 + 4); // Adjust the datum for the enemy.
     hide();
@@ -32,7 +32,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem()
         default:
             [[fallthrough]];
         case Skeleton: {
-            health = 16; damage = 1; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
+            health = 30; damage = 1; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 5;
 
             animationFrames[Moving] = 8;
@@ -44,7 +44,7 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem()
             break;
         }
         case Skeleton_Archer: {
-            health = 16; damage = 1; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
+            health = 30; damage = 1; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
             bitcoinReward = 7;
 
             animationFrames[Moving] = 8;
@@ -226,10 +226,6 @@ void Enemy::takeDamage(int damage)
 {
     setState(Damaged);
     health -= damage;
-
-    if (health <= 0) {
-        setState(Dying);
-    }
 }
 
 void Enemy::setState(EnemyState newState)
@@ -240,21 +236,20 @@ void Enemy::setState(EnemyState newState)
         state = newState;
         animationCounter[state] = 1; // Reset animation.
         attackCooldown = 1; // Reset attack cooldown.
-
-        if (state != Moving)
-        {
-            // Snap to grid:
-            source[0] = dest[0];
-            source[1] = dest[1];
-            setPos(source[0], source[1]);
-            setZValue(y() + 8);
-        }
     }
 }
 
 EnemyState Enemy::getState()
 {
     return state;
+}
+
+void Enemy::setJustLoaded(bool value) {
+    justLoaded = value;
+}
+
+bool Enemy::isJustLoaded() const {
+    return justLoaded;
 }
 
 // Tick function for handling animation, movement and actions:
@@ -282,7 +277,7 @@ void Enemy::Tick()
 
             if (moveProgress == 1)
             {
-                setState(Idle); // Wait untill enemy is successfully moved.
+                setState(Idle); // Wait until enemy is successfully moved.
                 moveProgress = 0; // Reset movement.
                 emit moveEnemy(this);
                 show();
@@ -309,7 +304,19 @@ void Enemy::Tick()
         }
         break;
         case Damaged:
+        {
             row = spriteSheet->height()/spriteSize - 2; // Second to last row.
+
+            // Move enemy while being damaged:
+            moveProgress = (moveProgress < 0 || moveProgress > 1) ? 1 : moveProgress; // Make sure the movement is bounded.
+            float f = (1 - cos(PI * moveProgress)) / 2; // Interpolation function for ease-in ease-out movement.
+            float x = (1-f)*source[0] + f*dest[0];
+            float y = (1-f)*source[1] + f*dest[1];
+            setPos(x, y);
+            setZValue(y + 8); // Ensure that enemy is drawn at correct ZValue.
+
+            moveProgress += walkSpeed/frameRate; // Enemy will move by walkSpeed amount of tiles in one second.
+        }
         break;
         case Dying:
             row = spriteSheet->height()/spriteSize - 1; // Last row.
@@ -328,7 +335,10 @@ void Enemy::Tick()
 
         if (state == Damaged)
         {
-            setState(prevState); // Go back to previous state before enemy was damaged.
+            if (health <= 0)
+                setState(Dying); // Kill enemy.
+            else
+                setState(prevState); // Go back to previous state before enemy was damaged.
         }
         else if (state == Dying)
         {
