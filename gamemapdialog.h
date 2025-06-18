@@ -86,6 +86,7 @@ private:
 
     QVector<Enemy*> enemies;
     QVector<Tower*> towers;
+    QVector<EnemyType> waveEnemies;
 
     int mapGrid[2*mapHeight][2*mapWidth];
     int barrierGrid[2*mapHeight][2*mapWidth];
@@ -95,6 +96,9 @@ private:
     QTimer *gameTick;
     QTimer *enemyTick;
     QTimer *waveTimer;
+    QTimer *enemySpawnTimer;
+
+    int currentEnemyIndex;
 
     int currentWave;
     int enemiesToSpawn;
