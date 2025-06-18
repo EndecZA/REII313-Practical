@@ -46,10 +46,6 @@ public:
     enum difficulty gameDifficulty;
     enum map mapType;
     bool isMultiplayer;
-    static const int tileSize = 32;
-    static const int mapWidth = 15;
-    static const int mapHeight = 30;
-    static const int frameRate = 8; // Framerate in FPS.
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -70,6 +66,11 @@ public slots:
 
 
 private:
+    static const int tileSize = 32;
+    static const int mapWidth = 15;
+    static const int mapHeight = 30;
+    static const int frameRate = 8; // Framerate in FPS.
+
     QGraphicsView *gameView;
     QGraphicsScene *gameScene;
     QFile *mapFile;

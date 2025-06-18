@@ -7,7 +7,7 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
     setOffset(-1, -towerH+24); // Adjust the datum for the tower.
 
     type = t;
-    health = -1; // Default: Tower is unkillable.
+    maxHealth = -1; // Default: Tower is unkillable.
     QString path = "";
 
     switch (type) // Initialize base attributes:
@@ -17,7 +17,7 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
             [[fallthrough]];
         case barricade:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 50; damage = 0; fireRate = 0; range = 1; health = 50;
+            cost = 50; damage = 0; fireRate = 0; range = 1; maxHealth = 50;
         break;
         case melee:
             path = ":/resources/images/towers/archer_tower.png";
@@ -37,7 +37,7 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
         break;
         case base:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 0; damage = 0; fireRate = 0; range = 0; health = 500;
+            cost = 0; damage = 0; fireRate = 0; range = 0; maxHealth = 500;
         break;
     }
     pixmap = new QPixmap(path);
@@ -46,6 +46,7 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
     state = idle;
     animationCounter = 1;
     attackCounter = 1;
+    health = maxHealth;
     Tick(); // Initialize tower.
 
 }
@@ -109,6 +110,11 @@ void Tower::Tick() // Tick function for tower.
     else if (type == base && health <= 0)
     {
         // Emit gameLost() signal here!!
+    }
+
+    if (maxHealth != -1 && health != maxHealth)
+    {
+
     }
 
     if (state == attacking && type != base)

@@ -25,7 +25,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     setWindowTitle("Dungeons & Towers");
 
     gameScene = new QGraphicsScene(this);
-    gameScene->setSceneRect(0, 0, tileSize*mapWidth, tileSize/2*mapHeight+32);
+    gameScene->setSceneRect(0, 0, tileSize*(mapWidth+1), tileSize/2*mapHeight+32);
     gameScene->setItemIndexMethod(QGraphicsScene::NoIndex);
     gameScene->setBackgroundBrush(Qt::black);
     gameView = new QGraphicsView(gameScene, this);
@@ -33,7 +33,7 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     gameView->setRenderHint(QPainter::Antialiasing);
     gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    float scale = 1920/(tileSize*mapWidth);
+    qreal scale = 1920/(tileSize*(mapWidth+1));
     gameView->scale(scale, scale);
     gameView->centerOn(1920/2, 0);
     gameView->show();
@@ -564,10 +564,11 @@ void GameMapDialog::destroyTower(int row, int col)
 void GameMapDialog::killEnemy(Enemy *e)
 {
     if (enemies.removeOne(e))
+    {
         bitcoinCount += e->getBitcoinReward();
-
-    if (e != nullptr)
         e->deleteLater();
+    }
+
 }
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)
@@ -592,6 +593,8 @@ void GameMapDialog::pauseGame()
 void GameMapDialog::resumeGame()
 {
     gameTick->start();
+    enemyTick->start();
+    // waveTimer->start();
     pauseMenu = nullptr;
 }
 
@@ -711,8 +714,8 @@ bool GameMapDialog::loadGameFromFile(const QString& filename) {
     // Initialize default values in case of partial file
     mapType = map1;
     gameDifficulty = medium;
-    bitcoinCount = 200;
-    savedBitcoinCount = 200;
+    bitcoinCount = 500;
+    savedBitcoinCount = 500;
     currentWave = 0;
 
     bool readingEnemies = false;

@@ -22,22 +22,22 @@ public:
     int getCost();
     void Tick(); // Tick function for tower.
     Tile *tile;
-
-    int animationCounter; // Iterate over animation frames.
     int towerLevel;
-    int health; // Tower health: Only applicable to barricades and the base type.
-    int damage;
-    int fireRate; // Number of ticks that the tower waits before attacking next.
-    int attackCounter; // Counter to keep track of the amount of received ticks.
-    int range;
-    int cost; // Cost of construction or upgrade.
-
 
 private:
     QPixmap *pixmap;
     towerState state;
     static const int towerW = 70;
     static const int towerH = 130;
+
+    int animationCounter; // Iterate over animation frames.
+    int maxHealth; // Tower health: Only applicable to barricades and the base type.
+    int health;
+    int damage;
+    int fireRate; // Number of ticks that the tower waits before attacking next.
+    int attackCounter; // Counter to keep track of the amount of received ticks.
+    int range;
+    int cost; // Cost of construction or upgrade.
 
 public slots:
     int Upgrade(int balance); // Input: Currency balance. Output: Balance after upgrade.
