@@ -6,6 +6,7 @@
 #include <QWidget>
 #include <QPixmap>
 #include <QDebug>
+#include <QProgressBar>
 
 class Tile;
 
@@ -40,6 +41,9 @@ private:
     int range; // Square attack radius.
     int piercing; // Number of enemies that a tower can attack at a time.
     int cost; // Cost of construction or upgrade.
+
+    QGraphicsRectItem *healthBarBack;
+    QGraphicsRectItem *healthBarFront;
 
 public slots:
     int Upgrade(int balance); // Input: Currency balance. Output: Balance after upgrade.

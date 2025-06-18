@@ -8,8 +8,8 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 
     type = t;
     maxHealth = -1; // Default: Tower is unkillable.
-    QString path = "";
 
+    QString path = "";
     switch (type) // Initialize base attributes:
     {
     // SUBJECT TO CHANGE!!
@@ -25,19 +25,19 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
         break;
         case archer:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 100; damage = 20; fireRate = 20; range = 6; piercing = 2;
+            cost = 100; damage = 20; fireRate = 20; range = 3; piercing = 2;
         break;
         case fire:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 125; damage = 50; fireRate = 10; range = 4; piercing = 10;
+            cost = 125; damage = 50; fireRate = 10; range = 2; piercing = 10;
         break;
         case wizard:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 150; damage = 100; fireRate = 5; range = 10; piercing = 4;
+            cost = 150; damage = 100; fireRate = 5; range = 5; piercing = 4;
         break;
         case base:
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 0; damage = 0; fireRate = 0; range = 0; piercing = 0; maxHealth = 500;
+            cost = 0; damage = 0; fireRate = 0; range = 0; piercing = 0; maxHealth = 1000;
         break;
     }
     pixmap = new QPixmap(path);
@@ -46,6 +46,30 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
     animationCounter = 1;
     attackCounter = 1;
     health = maxHealth;
+
+    if (maxHealth != -1)
+    {
+        // Create background bar (grey)
+        healthBarBack = new QGraphicsRectItem(this);
+        healthBarBack->setRect(0, 0, 40, 5);
+        healthBarBack->setBrush(Qt::gray);
+        healthBarBack->setZValue(1);
+
+        // Create foreground bar (green)
+        healthBarFront = new QGraphicsRectItem(healthBarBack);
+        healthBarFront->setRect(0, 0, 40, 5);
+        healthBarFront->setBrush(Qt::green);
+        healthBarFront->setZValue(2);
+
+        // Position bar above tower
+        healthBarBack->setPos(14, -80);
+    }
+    else
+    {
+        healthBarBack = nullptr;
+        healthBarFront = nullptr;
+    }
+
     Tick(); // Initialize tower.
 
 }
@@ -116,9 +140,11 @@ void Tower::Tick() // Tick function for tower.
         // Emit gameLost() signal here!!
     }
 
+    // Update health bar:
     if (maxHealth != -1 && health != maxHealth)
     {
-        // Update health bar here!!
+        float ratio = float(health)/maxHealth;
+        healthBarFront->setRect(0, 0, 40 * ratio, 5);
     }
 
     if (fireRate != 0)

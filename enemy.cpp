@@ -359,8 +359,16 @@ void Enemy::setDest(int x, int y) // Set new destination position.
         isMirrored = false;
 
     // Make the old destination the new source:
-    source[0] = dest[0];
-    source[1] = dest[1];
+    if (source[0] == 0 && source[1] == 0)
+    {
+        source[0] = x;
+        source[1] = y;
+    }
+    else
+    {
+        source[0] = dest[0];
+        source[1] = dest[1];
+    }
 
     // Add new destination:
     dest[0] = x;
