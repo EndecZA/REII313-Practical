@@ -32,7 +32,8 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
         default:
             [[fallthrough]];
         case Skeleton: {
-            health = 16; damage = 2; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
+
+            health = 30; damage = 1; walkSpeed = 1; attackSpeed = 1; attackRange = 1;
             bitcoinReward = 5;
 
             animationFrames[Moving] = 8;
@@ -44,8 +45,9 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
             break;
         }
         case Skeleton_Archer: {
-            health = 16; damage = 2; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
-            bitcoinReward = 5;
+
+            health = 30; damage = 1; walkSpeed = 1; attackSpeed = 1; attackRange = 5;
+            bitcoinReward = 7;
 
             animationFrames[Moving] = 8;
             animationFrames[Attacking] = 9;
