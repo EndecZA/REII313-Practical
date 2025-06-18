@@ -25,17 +25,17 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     setWindowTitle("Dungeons & Towers");
 
     gameScene = new QGraphicsScene(this);
-    gameScene->setSceneRect(0, 0, tileSize*(mapWidth+1), tileSize/2*mapHeight+32);
+    gameScene->setSceneRect(0, 0, tileSize*(mapWidth+0.5), tileSize/2*mapHeight+tileSize);
     gameScene->setItemIndexMethod(QGraphicsScene::NoIndex);
     gameScene->setBackgroundBrush(Qt::black);
     gameView = new QGraphicsView(gameScene, this);
     gameView->setFixedSize(1920, 1080);
+    gameView->centerOn(0, 0);
     gameView->setRenderHint(QPainter::Antialiasing);
     gameView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     gameView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    qreal scale = 1920/(tileSize*(mapWidth+1));
+    float scale = 1920.0/(tileSize*(mapWidth+0.6));
     gameView->scale(scale, scale);
-    gameView->centerOn(1920/2, 0);
     gameView->show();
 
     // Initialize game attributes:
@@ -211,6 +211,7 @@ void GameMapDialog::drawMap()
                 connect(tileGrid[i][j], &Tile::buildTower, this, &GameMapDialog::buildTower);
                 connect(tileGrid[i][j], &Tile::sellTower, this, &GameMapDialog::sellTower);
                 connect(tileGrid[i][j], &Tile::upgradeTower, this, &GameMapDialog::upgradeTower);
+                connect(tileGrid[i][j], &Tile::attackAnimation, this, &GameMapDialog::attackAnimation);
             }
             else
             {
@@ -515,19 +516,31 @@ void GameMapDialog::buildTower(towerType type, int row, int col)
     Tower *tower = new Tower(type);
     if (bitcoinCount - tower->getCost() >= 0)
     {
+        bitcoinCount -= tower->getCost(); // Pay amount for tower.
+
         tileGrid[row][col]->addTower(tower);
         gameScene->addItem(tower);
-
         towers.append(tower);
+
         connect(tower, &Tower::destroyTower, this, &GameMapDialog::destroyTower);
 
-        bitcoinCount -= tower->getCost(); // Pay amount for tower.
+        // Connect tower attacking signal to tiles that are in range:
+        int range = tower->getRange();
+        for (int i = row-2*range; i <= row+2*range; ++i)
+        {
+            for (int j = col-2*range; j <= col+2*range; ++j)
+            {
+                if (i >= 0 && i < 2*mapHeight && j >= 0 && j < 2*mapWidth)
+                    if (tileGrid[i][j] != nullptr)
+                        connect(tower, &Tower::Attack, tileGrid[i][j], &Tile::damageEnemy);
+            }
+        }
 
         floodFill(); // Recalculate shortest paths.
     }
     else
     {
-        tower->deleteLater();
+        delete tower;
     }
 }
 
@@ -569,6 +582,20 @@ void GameMapDialog::killEnemy(Enemy *e)
         e->deleteLater();
     }
 
+}
+
+void GameMapDialog::attackAnimation(Tower* tower, Enemy* enemy)
+{
+    QPen pen(Qt::red);
+    pen.setWidth(1);
+    pen.setStyle(Qt::DashLine);
+    float x1 = tower->x();
+    float x2 = enemy->x();
+    float y1 = tower->y();
+    float y2 = enemy->y();
+    QGraphicsLineItem* line = gameScene->addLine(QLineF(x1, y1, x2, y2), pen);
+    line->setZValue(1000);
+    gameScene->update();
 }
 
 void GameMapDialog::keyPressEvent(QKeyEvent *event)

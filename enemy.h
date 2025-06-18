@@ -27,6 +27,7 @@ public:
     int getDamage();
     int getRange();
     int getBitcoinReward();
+    void takeDamage(int damage);
 
     void setDest(int x, int y); // Set new destination position.
     void Tick(); // Tick function for enemy.
@@ -63,9 +64,6 @@ signals:
     void Attack(int damage); // Attack any towers that are in range.
     void moveEnemy(Enemy*); // Move enemy to new tile.
     void killEnemy(Enemy*); // Signal to remove enemy from the game map.
-
-public slots:
-    void takeDamage(int damage);
 
 };
 

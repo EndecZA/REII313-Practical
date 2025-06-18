@@ -7,6 +7,8 @@
 #include <QGraphicsScene>
 #include <QGraphicsTextItem>
 #include <QGraphicsRectItem>
+#include <QGraphicsLineItem>
+#include <QPen>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsItemGroup>
 #include <QPixmap>
@@ -60,6 +62,7 @@ public slots:
     void upgradeTower(int row, int col); // Upgrade tower at tile that sent the signal.
     void destroyTower(int row, int col);
     void killEnemy(Enemy*);
+    void attackAnimation(Tower*, Enemy*);
     bool loadGameFromFile(const QString& filename);
     bool saveGameToFile(const QString& filename);
     void cleanState();

@@ -17,7 +17,7 @@ Tile::Tile(int tileType, int barrierType, int r, int c) : QObject(), QGraphicsPi
     // Save tileset on the stack to copy from:
     QPixmap tileset(":/resources/images/tileset.png");
 
-    pos[0] = col*tileSize/2 - tileSize/4;
+    pos[0] = col*tileSize/2;
     pos[1] = row*tileSize/4 + rand()%5 - 2; // Add vertical variation for interest.
 
     // Add tile Pixmap to tile:
@@ -244,6 +244,27 @@ void Tile::addEnemy(Enemy *e) // Add enemy to tile.
         }
     }
 
+}
+
+void Tile::damageEnemy(int damage, int piercing, Tower* tower) // Damage enemies at tile.
+{
+    if (!enemies.isEmpty())
+    {
+        int count = enemies.size();
+        for (int i = 0; i < piercing; ++i)
+        {
+            int index = rand()%count;
+            Enemy *enemy = enemies.at(index);
+
+            emit attackAnimation(tower, enemy); // Animate attack.
+
+            enemy->takeDamage(damage); // Damage enemy located in the tile
+
+            --count;
+            if (count == 0)
+                break;
+        }
+    }
 }
 
 void Tile::killEnemy(Enemy *e)
