@@ -236,7 +236,7 @@ void Enemy::setState(EnemyState newState)
 {
     prevState = state;
 
-    if (prevState != newState) {
+    if (prevState != newState && prevState != Dying) {
         state = newState;
         animationCounter[state] = 1; // Reset animation.
         attackCooldown = 1; // Reset attack cooldown.
@@ -348,7 +348,6 @@ void Enemy::Tick()
         else if (state == Dying)
         {
             emit killEnemy(this);
-            setState(Idle);
             hide();
         }
         else if (state == Idle)
