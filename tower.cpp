@@ -8,32 +8,39 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 
     type = t;
     maxHealth = -1; // Default: Tower is unkillable.
+    animationFrames = 4; // Defaut value.
 
     QString path = "";
     switch (type) // Initialize base attributes:
     {
         case barricade:
+            animationFrames = 6;
             path = ":/resources/images/towers/barricade_tower.png";
             cost = 50; upgradeCost = 25; damage = 5; attackSpeed = 1; range = 1; piercing = 2; maxHealth = 25;
         break;
         case melee:
-            path = ":/resources/images/towers/archer_tower.png";
+            animationFrames = 4;
+            path = ":/resources/images/towers/melee_tower.png";
             cost = 75; upgradeCost = 25; damage = 15; attackSpeed = 5; range = 2; piercing = 5;
         break;
         case archer:
+            animationFrames = 6;
             path = ":/resources/images/towers/archer_tower.png";
             cost = 100; upgradeCost = 25; damage = 20; attackSpeed = 2; range = 3; piercing = 2;
         break;
         case fire:
-            path = ":/resources/images/towers/archer_tower.png";
+            animationFrames = 4;
+            path = ":/resources/images/towers/fire_tower.png";
             cost = 125; upgradeCost = 25; damage = 50; attackSpeed = 3; range = 2; piercing = 10;
         break;
         case wizard:
-            path = ":/resources/images/towers/archer_tower.png";
+            animationFrames = 4;
+            path = ":/resources/images/towers/wizard_tower.png";
             cost = 150; upgradeCost = 25; damage = 100; attackSpeed = 0.8; range = 5; piercing = 5;
         break;
         case base:
-            path = ":/resources/images/towers/archer_tower.png";
+            animationFrames = 6;
+            path = ":/resources/images/towers/base_tower.png";
             cost = 0; upgradeCost = 300; damage = 0; attackSpeed = 0; range = 0; piercing = 0; maxHealth = 500;
         break;
     }
@@ -179,7 +186,7 @@ void Tower::Tick() // Tick function for tower.
     int col = animationCounter-1; // Col between 0 and 5.
     setPixmap(pixmap->copy(col*towerW, row*towerH, towerW, towerH));
 
-    if (animationCounter%6 == 0) // Reached end of animation.
+    if (animationCounter%animationFrames == 0) // Reached end of animation.
     {
         animationCounter = 0;
     }

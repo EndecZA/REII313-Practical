@@ -22,5 +22,9 @@
         <file>audio/audio.wav</file>
         <file>images/towers/archer_tower.png</file>
         <file>images/towers/barricade_tower.png</file>
+        <file>images/towers/base_tower.png</file>
+        <file>images/towers/fire_tower.png</file>
+        <file>images/towers/melee_tower.png</file>
+        <file>images/towers/wizard_tower.png</file>
     </qresource>
 </RCC>

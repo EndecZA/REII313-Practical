@@ -37,6 +37,7 @@ private:
     static const int towerH = 130;
     static const int frameRate = 8;
 
+    int animationFrames; // Number of frames per tileset.
     int animationCounter; // Iterate over animation frames.
     float attackSpeed; // Attacking speed of enemy in attacks/second.
     float attackCooldown; // Value used to delay attacks based on attack speed.
