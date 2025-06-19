@@ -21,7 +21,7 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
         case melee:
             animationFrames = 4;
             path = ":/resources/images/towers/melee_tower.png";
-            cost = 75; upgradeCost = 25; damage = 15; attackSpeed = 5; range = 2; piercing = 4;
+            cost = 75; upgradeCost = 25; damage = 15; attackSpeed = 3; range = 2; piercing = 4;
         break;
         case archer:
             animationFrames = 6;
@@ -31,12 +31,12 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
         case fire:
             animationFrames = 4;
             path = ":/resources/images/towers/fire_tower.png";
-            cost = 150; upgradeCost = 50; damage = 50; attackSpeed = 3; range = 2; piercing = 4;
+            cost = 150; upgradeCost = 50; damage = 50; attackSpeed = 1; range = 2; piercing = 3;
         break;
         case wizard:
             animationFrames = 4;
             path = ":/resources/images/towers/wizard_tower.png";
-            cost = 200; upgradeCost = 50; damage = 100; attackSpeed = 0.8; range = 6; piercing = 5;
+            cost = 200; upgradeCost = 50; damage = 100; attackSpeed = 0.5; range = 6; piercing = 1;
         break;
         case base:
             animationFrames = 6;
