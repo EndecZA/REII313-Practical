@@ -13,7 +13,7 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
     switch (type) // Initialize base attributes:
     {
         case barricade:
-            path = ":/resources/images/towers/archer_tower.png";
+            path = ":/resources/images/towers/barricade_tower.png";
             cost = 50; upgradeCost = 25; damage = 5; attackSpeed = 1; range = 1; piercing = 2; maxHealth = 25;
         break;
         case melee:
