@@ -325,8 +325,8 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
             QAction* barricadeTower = towerMenu->addAction("Build Barricade: -50 B");
             QAction* meleeTower = towerMenu->addAction("Build Melee Tower: -75 B");
             QAction* archerTower = towerMenu->addAction("Build Archer Tower: -100 B");
-            QAction* fireTower = towerMenu->addAction("Build Fire Tower: -125 B");
-            QAction* wizardTower = towerMenu->addAction("Build Wizard Tower: -150 B");
+            QAction* fireTower = towerMenu->addAction("Build Fire Tower: -150 B");
+            QAction* wizardTower = towerMenu->addAction("Build Wizard Tower: -200 B");
 
             connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
             {
