@@ -247,7 +247,8 @@ void Tile::addEnemy(Enemy *e) // Add enemy to tile.
 
 void Tile::damageEnemy(int damage, int piercing, Tower* tower) // Damage enemies at tile.
 {
-    if (rand()%tower->getRange() != 0) // Only attack enemies selectively.
+    int aim = (int)sqrt(tower->getRange());
+    if (rand()%aim != 0) // Only attack enemies selectively based on the attack range (aim of the tower).
     {
         return;
     }
@@ -324,8 +325,8 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
             QAction* barricadeTower = towerMenu->addAction("Build Barricade: -50 B");
             QAction* meleeTower = towerMenu->addAction("Build Melee Tower: -75 B");
             QAction* archerTower = towerMenu->addAction("Build Archer Tower: -100 B");
-            QAction* fireTower = towerMenu->addAction("Build Fire Tower: -125 B");
-            QAction* wizardTower = towerMenu->addAction("Build Wizard Tower: -150 B");
+            QAction* fireTower = towerMenu->addAction("Build Fire Tower: -150 B");
+            QAction* wizardTower = towerMenu->addAction("Build Wizard Tower: -200 B");
 
             connect(towerMenu, &QMenu::triggered, this, [=](QAction* action)
             {
@@ -345,7 +346,7 @@ void Tile::mousePressEvent(QGraphicsSceneMouseEvent *e) // Handle click events.
 
             towerMenu->popup(e->screenPos()); // Show menu at mouse position.
         }
-        else if ((hasTower || isBarricade) && tower->getLevel() < 2)
+        else if (((hasTower || isBarricade) && tower->getLevel() < 2))
         {
             QMenu *towerMenu = new QMenu();
             towerMenu->setStyleSheet(

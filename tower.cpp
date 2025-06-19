@@ -16,27 +16,27 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
         case barricade:
             animationFrames = 6;
             path = ":/resources/images/towers/barricade_tower.png";
-            cost = 50; upgradeCost = 25; damage = 5; attackSpeed = 1; range = 1; piercing = 2; maxHealth = 25;
+            cost = 50; upgradeCost = 20; damage = 5; attackSpeed = 1; range = 1; piercing = 2; maxHealth = 25;
         break;
         case melee:
             animationFrames = 4;
             path = ":/resources/images/towers/melee_tower.png";
-            cost = 75; upgradeCost = 25; damage = 15; attackSpeed = 5; range = 2; piercing = 5;
+            cost = 75; upgradeCost = 25; damage = 15; attackSpeed = 5; range = 2; piercing = 4;
         break;
         case archer:
             animationFrames = 6;
             path = ":/resources/images/towers/archer_tower.png";
-            cost = 100; upgradeCost = 25; damage = 20; attackSpeed = 2; range = 3; piercing = 2;
+            cost = 100; upgradeCost = 25; damage = 20; attackSpeed = 2; range = 4; piercing = 2;
         break;
         case fire:
             animationFrames = 4;
             path = ":/resources/images/towers/fire_tower.png";
-            cost = 125; upgradeCost = 25; damage = 50; attackSpeed = 3; range = 2; piercing = 10;
+            cost = 150; upgradeCost = 50; damage = 50; attackSpeed = 3; range = 2; piercing = 4;
         break;
         case wizard:
             animationFrames = 4;
             path = ":/resources/images/towers/wizard_tower.png";
-            cost = 150; upgradeCost = 25; damage = 100; attackSpeed = 0.8; range = 5; piercing = 5;
+            cost = 200; upgradeCost = 50; damage = 100; attackSpeed = 0.8; range = 6; piercing = 5;
         break;
         case base:
             animationFrames = 6;
@@ -115,19 +115,19 @@ int Tower::Upgrade(int balance) // Input: Currency balance. Output: Balance afte
             case barricade:
                 maxHealth += 50;
                 health += 50;
-                damage += 10; attackSpeed += 1; range += 1; piercing += 2;
+                damage += 10; attackSpeed += 1; range += 1; piercing += 1;
             break;
             case melee:
-                damage += 10; attackSpeed += 1; range += 1; piercing += 2;
+                damage += 10; attackSpeed += 1; range += 1; piercing += 1;
             break;
             case archer:
-                damage += 10; attackSpeed += 1; range += 1; piercing += 2;
+                damage += 10; attackSpeed += 1; range += 1; piercing += 1;
             break;
             case fire:
-                damage += 15; attackSpeed += 1; range += 1; piercing += 2;
+                damage += 10; attackSpeed += 1; range += 1; piercing += 1;
             break;
             case wizard:
-                damage += 25; attackSpeed += 1; range += 1; piercing += 2;
+                damage += 25; attackSpeed += 1; range += 1; piercing += 1;
             break;
             case base:
                 maxHealth += 250;
