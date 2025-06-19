@@ -101,18 +101,17 @@ MultiPlayerOptionsDialog::~MultiPlayerOptionsDialog()
 QString MultiPlayerOptionsDialog::getLocalIp()
 {
     for (const QNetworkInterface& interface : QNetworkInterface::allInterfaces()) {
-        // Check if the interface is up and running
         if (interface.flags() & QNetworkInterface::IsUp &&
             interface.flags() & QNetworkInterface::IsRunning) {
             for (const QNetworkAddressEntry& entry : interface.addressEntries()) {
                 if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol &&
-                    entry.ip() != QHostAddress("127.0.0.1")) { // Skip loopback
+                    entry.ip() != QHostAddress("127.0.0.1")) {
                     return entry.ip().toString();
                 }
             }
         }
     }
-    return QHostAddress(QHostAddress::LocalHost).toString(); // Fallback to localhost
+    return QHostAddress(QHostAddress::LocalHost).toString();
 }
 
 void MultiPlayerOptionsDialog::onHostGameClicked()
@@ -132,14 +131,14 @@ void MultiPlayerOptionsDialog::onJoinGameClicked()
     gamesList->setVisible(true);
     gamesList->clear();
     availableGames.clear();
-    // Send a discovery request to prompt hosts to respond
+
     QByteArray datagram = "DISCOVER";
     discoverySocket->writeDatagram(datagram, QHostAddress::Broadcast, DISCOVERY_PORT);
 }
 
 void MultiPlayerOptionsDialog::broadcastGame()
 {
-    // Broadcast the host's real IP address
+
     QByteArray datagram = "HOST:" + getLocalIp().toUtf8();
     discoverySocket->writeDatagram(datagram, QHostAddress::Broadcast, DISCOVERY_PORT);
     qDebug() << "Broadcasting host availability at" << getLocalIp();
@@ -162,7 +161,7 @@ void MultiPlayerOptionsDialog::readPendingDatagrams()
                 qDebug() << "Discovered game at" << hostAddress;
             }
         } else if (datagram == "DISCOVER") {
-            // Respond to discovery requests if this instance is hosting
+
             if (broadcastTimer->isActive()) {
                 broadcastGame();
             }
