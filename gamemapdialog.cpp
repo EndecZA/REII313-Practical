@@ -16,10 +16,19 @@
 #include <QMessageBox>
 #include <QThread>
 #include <QCoreApplication>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QDataStream>
+
+const quint16 GAME_PORT = 45455;
 
 GameMapDialog::GameMapDialog(QWidget *parent)
-    : QDialog(parent)
+    : QDialog(parent),
+    tcpServer(nullptr),
+    clientSocket(nullptr)
 {
+
+
     setModal(true);
     showMaximized();
     setFixedSize(1920,1080);
@@ -61,6 +70,108 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     pauseMenu = nullptr;
 
 }
+
+void GameMapDialog::setupNetworkAsHost()
+{
+    tcpServer = new QTcpServer(this);
+    if (!tcpServer->listen(QHostAddress::Any, GAME_PORT)) {
+        QMessageBox::critical(this, "Error", "Could not start server");
+        return;
+    }
+
+    connect(tcpServer, &QTcpServer::newConnection, this, &GameMapDialog::onNewConnection);
+
+    // Set up update timer
+    networkUpdateTimer = new QTimer(this);
+    connect(networkUpdateTimer, &QTimer::timeout, this, &GameMapDialog::sendGameUpdate);
+    networkUpdateTimer->start(100); // Update 10 times per second
+}
+
+void GameMapDialog::setupNetworkAsClient(const QString& hostAddress)
+{
+    clientSocket = new QTcpSocket(this);
+    clientSocket->connectToHost(hostAddress, GAME_PORT);
+
+    if (!clientSocket->waitForConnected(3000)) {
+        QMessageBox::critical(this, "Error", "Could not connect to host");
+        return;
+    }
+
+    connect(clientSocket, &QTcpSocket::readyRead, this, &GameMapDialog::readClientData);
+}
+
+void GameMapDialog::onNewConnection()
+{
+    clientSocket = tcpServer->nextPendingConnection();
+    connect(clientSocket, &QTcpSocket::disconnected, clientSocket, &QTcpSocket::deleteLater);
+
+    // Stop listening for new connections (we only support 2 players)
+    tcpServer->close();
+}
+
+void GameMapDialog::sendGameUpdate()
+{
+    if (!clientSocket || !clientSocket->isWritable()) return;
+
+    QByteArray block;
+    QDataStream out(&block, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_5_0);
+
+    // Serialize game state
+    out << currentWave << bitcoinCount;
+
+    // Serialize enemies
+    out << enemies.size();
+    for (Enemy* enemy : qAsConst(enemies)) {
+        out << (int)enemy->getType() << enemy->pos().x() << enemy->pos().y() << enemy->getHealth();
+    }
+
+    // Serialize towers
+    out << towers.size();
+    for (Tower* tower : towers) {
+        out << (int)tower->type << tower->tile->row << tower->tile->col << tower->towerLevel;
+    }
+
+    clientSocket->write(block);
+}
+
+void GameMapDialog::readClientData()
+{
+    QDataStream in(clientSocket);
+    in.setVersion(QDataStream::Qt_5_0);
+
+    // Deserialize game state
+    int wave;
+    int bitcoins;
+    in >> wave >> bitcoins;
+
+    currentWave = wave;
+    bitcoinCount = bitcoins;
+
+    // Deserialize enemies
+    int enemyCount;
+    in >> enemyCount;
+    for (int i = 0; i < enemyCount; ++i) {
+        int type, health;
+        float x, y;
+        in >> type >> x >> y >> health;
+        // Update or create enemies
+    }
+
+    // Deserialize towers
+    int towerCount;
+    in >> towerCount;
+    for (int i = 0; i < towerCount; ++i) {
+        int type, row, col, level;
+        in >> type >> row >> col >> level;
+        // Update or create towers
+    }
+
+    updateBitcoinDisplay();
+    updateWaveDisplay();
+}
+
+
 
 void GameMapDialog::setDifficulty(int dif)
 {

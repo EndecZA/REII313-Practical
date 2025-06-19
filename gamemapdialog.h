@@ -17,6 +17,8 @@
 #include <QQueue>
 #include <QSound>
 #include <QKeyEvent>
+#include <QTcpServer>
+#include <QTcpSocket>
 
 #include "tile.h"
 #include "enemy.h"
@@ -55,6 +57,9 @@ public:
     enum map mapType;
     bool isMultiplayer;
 
+    void setupNetworkAsHost();
+    void setupNetworkAsClient(const QString& hostAddress);
+
 protected:
     void keyPressEvent(QKeyEvent *event) override;
 
@@ -72,6 +77,11 @@ public slots:
     bool loadGameFromFile(const QString& filename);
     bool saveGameToFile(const QString& filename);
     void cleanState();
+
+    void onNewConnection();
+    void readClientData();
+    void sendGameUpdate();
+
 
 
 private:
@@ -120,6 +130,11 @@ private:
     void tickEnemies();
     void pauseGame();
     void resumeGame();
+
+    QTcpServer *tcpServer;
+    QTcpSocket *clientSocket;
+    QTimer *networkUpdateTimer;
+
 };
 
 #endif // GAMEMAPDIALOG_H

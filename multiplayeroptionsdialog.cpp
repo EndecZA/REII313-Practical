@@ -3,6 +3,8 @@
 #include <QVBoxLayout>
 #include <QDebug>
 
+const quint16 DISCOVERY_PORT = 45454;
+
 MultiPlayerOptionsDialog::MultiPlayerOptionsDialog(QWidget *parent)
     : QDialog(parent)
 {
@@ -56,18 +58,60 @@ MultiPlayerOptionsDialog::MultiPlayerOptionsDialog(QWidget *parent)
     layout->setSpacing(20);
 
     setLayout(layout);
+
+    gamesList = new QListWidget(this);
+    gamesList->setVisible(false);
+    connect(gamesList, &QListWidget::itemClicked, this, &MultiPlayerOptionsDialog::onGameSelected);
+
+    // Setup network
+    discoverySocket = new QUdpSocket(this);
+    discoverySocket->bind(DISCOVERY_PORT, QUdpSocket::ShareAddress);
+    connect(discoverySocket, &QUdpSocket::readyRead, this, &MultiPlayerOptionsDialog::readPendingDatagrams);
+
 }
 
 void MultiPlayerOptionsDialog::onHostGameClicked()
 {
-    qDebug() << "MultiPlayerOptionsDialog: Host Game selected";
-    accept(); // Close dialog with "accepted" status
-    // Add logic for hosting a game here
+    // Start broadcasting game availability
+    QByteArray datagram = "HOST:" + QHostAddress(QHostAddress::LocalHost).toString().toUtf8();
+    discoverySocket->writeDatagram(datagram, QHostAddress::Broadcast, DISCOVERY_PORT);
+
+    emit gameHosted();
+    accept();
 }
 
 void MultiPlayerOptionsDialog::onJoinGameClicked()
 {
-    qDebug() << "MultiPlayerOptionsDialog: Join Game selected";
-    accept(); // Close dialog with "accepted" status
-    // Add logic for joining a game here
+    hostGameBtn->setVisible(false);
+    joinGameBtn->setVisible(false);
+    gamesList->setVisible(true);
+}
+
+void MultiPlayerOptionsDialog::readPendingDatagrams()
+{
+    while (discoverySocket->hasPendingDatagrams()) {
+        QByteArray datagram;
+        datagram.resize(discoverySocket->pendingDatagramSize());
+        QHostAddress sender;
+        quint16 senderPort;
+        discoverySocket->readDatagram(datagram.data(), datagram.size(), &sender, &senderPort);
+        if (datagram.startsWith("HOST:")) {
+            QString hostAddress = QString(datagram.mid(5));
+            if (!availableGames.contains(hostAddress)) {
+                availableGames.insert(hostAddress, "Game at " + hostAddress);
+                new QListWidgetItem("Game at " + hostAddress, gamesList);
+            }
+        }
+    }
+}
+
+void MultiPlayerOptionsDialog::onGameSelected(QListWidgetItem* item)
+{
+    QString gameInfo = item->text();
+    QString hostAddress = availableGames.key(gameInfo);
+
+    if (!hostAddress.isEmpty()) {
+        emit gameJoined(hostAddress);
+        accept();
+    }
 }

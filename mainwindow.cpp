@@ -96,13 +96,23 @@ void MainWindow::onSinglePlayerClicked() {
 
 void MainWindow::onMultiPlayerClicked()
 {
-    isMultiplayer = true;
     MultiPlayerOptionsDialog dialog(this);
+    connect(&dialog, &MultiPlayerOptionsDialog::gameHosted, [this]() {
+        gameMap = new GameMapDialog(this);
+        gameMap->setupNetworkAsHost();
+        gameMap->drawMap();
+        gameMap->exec();
+    });
+
+    connect(&dialog, &MultiPlayerOptionsDialog::gameJoined, [this](const QString& hostAddress) {
+        gameMap = new GameMapDialog(this);
+        gameMap->setupNetworkAsClient(hostAddress);
+        gameMap->drawMap();
+        gameMap->exec();
+    });
+
     dialog.exec();
-
-    // CODE HERE
 }
-
 MainWindow::~MainWindow()
 {
     delete Background;
