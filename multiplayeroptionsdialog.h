@@ -7,6 +7,7 @@
 #include <QUdpSocket>
 #include <QTcpSocket>
 #include <QListWidget>
+#include <QTimer>
 
 class MultiPlayerOptionsDialog : public QDialog
 {
@@ -14,6 +15,7 @@ class MultiPlayerOptionsDialog : public QDialog
 
 public:
     explicit MultiPlayerOptionsDialog(QWidget *parent = nullptr);
+    ~MultiPlayerOptionsDialog();
 
 signals:
     void gameHosted();
@@ -24,12 +26,14 @@ private slots:
     void onJoinGameClicked();
     void readPendingDatagrams();
     void onGameSelected(QListWidgetItem* item);
+    void broadcastGame();
 
 private:
     QPushButton *hostGameBtn;
     QPushButton *joinGameBtn;
     QListWidget *gamesList;
     QUdpSocket *discoverySocket;
+    QTimer *broadcastTimer;
     QMap<QString, QString> availableGames;
 };
 
