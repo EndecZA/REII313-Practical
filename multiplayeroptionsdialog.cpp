@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <QDebug>
 #include <QHostAddress>
+#include <QNetworkInterface>
 
 const quint16 DISCOVERY_PORT = 45454;
 
@@ -97,6 +98,23 @@ MultiPlayerOptionsDialog::~MultiPlayerOptionsDialog()
     broadcastTimer->stop();
 }
 
+QString MultiPlayerOptionsDialog::getLocalIp()
+{
+    for (const QNetworkInterface& interface : QNetworkInterface::allInterfaces()) {
+        // Check if the interface is up and running
+        if (interface.flags() & QNetworkInterface::IsUp &&
+            interface.flags() & QNetworkInterface::IsRunning) {
+            for (const QNetworkAddressEntry& entry : interface.addressEntries()) {
+                if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol &&
+                    entry.ip() != QHostAddress("127.0.0.1")) { // Skip loopback
+                    return entry.ip().toString();
+                }
+            }
+        }
+    }
+    return QHostAddress(QHostAddress::LocalHost).toString(); // Fallback to localhost
+}
+
 void MultiPlayerOptionsDialog::onHostGameClicked()
 {
     // Start broadcasting game availability every 2 seconds
@@ -121,10 +139,10 @@ void MultiPlayerOptionsDialog::onJoinGameClicked()
 
 void MultiPlayerOptionsDialog::broadcastGame()
 {
-    // Broadcast the host's IP address
-    QByteArray datagram = "HOST:" + QHostAddress(QHostAddress::LocalHost).toString().toUtf8();
+    // Broadcast the host's real IP address
+    QByteArray datagram = "HOST:" + getLocalIp().toUtf8();
     discoverySocket->writeDatagram(datagram, QHostAddress::Broadcast, DISCOVERY_PORT);
-    qDebug() << "Broadcasting host availability";
+    qDebug() << "Broadcasting host availability at" << getLocalIp();
 }
 
 void MultiPlayerOptionsDialog::readPendingDatagrams()

@@ -1,4 +1,3 @@
-// multiplayeroptionsdialog.h
 #ifndef MULTIPLAYEROPTIONSDIALOG_H
 #define MULTIPLAYEROPTIONSDIALOG_H
 
@@ -29,6 +28,7 @@ private slots:
     void broadcastGame();
 
 private:
+    QString getLocalIp();
     QPushButton *hostGameBtn;
     QPushButton *joinGameBtn;
     QListWidget *gamesList;

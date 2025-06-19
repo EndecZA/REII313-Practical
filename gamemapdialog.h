@@ -57,6 +57,8 @@ public:
     enum map mapType;
     bool isMultiplayer;
 
+    QString getLocalIp();
+
     void setupNetworkAsHost();
     void setupNetworkAsClient(const QString& hostAddress);
 
