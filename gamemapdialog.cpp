@@ -79,11 +79,11 @@ void GameMapDialog::setupNetworkAsHost()
         return;
     }
 
-    connect(tcpServer, &QTcpServer::newConnection, this, &GameMapDialog::onNewConnection);
-
-    // Set up update timer
+    connect(tcpServer, &QTcpServer::newConnection,
+            this, &GameMapDialog::onNewConnection);
     networkUpdateTimer = new QTimer(this);
-    connect(networkUpdateTimer, &QTimer::timeout, this, &GameMapDialog::sendGameUpdate);
+    connect(networkUpdateTimer, &QTimer::timeout,
+            this, &GameMapDialog::sendGameUpdate);
     networkUpdateTimer->start(100); // Update 10 times per second
 }
 
@@ -105,8 +105,6 @@ void GameMapDialog::onNewConnection()
     clientSocket = tcpServer->nextPendingConnection();
     connect(clientSocket, &QTcpSocket::disconnected, clientSocket, &QTcpSocket::deleteLater);
 
-    // Stop listening for new connections (we only support 2 players)
-    tcpServer->close();
 }
 
 void GameMapDialog::sendGameUpdate()
