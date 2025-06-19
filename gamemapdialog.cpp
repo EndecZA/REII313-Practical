@@ -621,7 +621,7 @@ void GameMapDialog::spawnWave()
         spawnPoints.enqueue(spawnTile); // Re-enqueue spawn point to cycle spawn locations
 
         QCoreApplication::processEvents(); // Keep UI responsive
-        QThread::msleep(250);  //Delay 250ms between each enemy spawn to avoid overlap visually
+        QThread::msleep(50);  //Delay 50ms between each enemy spawn to avoid overlap visually
     }
 
     currentWave++; // Increment wave
