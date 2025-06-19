@@ -128,7 +128,7 @@ void GameMapDialog::sendGameUpdate()
 
     // Serialize towers
     out << towers.size();
-    for (Tower* tower : towers) {
+    for (Tower *&tower : towers) {
         out << (int)tower->type << tower->tile->row << tower->tile->col << tower->towerLevel;
     }
 
@@ -597,7 +597,6 @@ void GameMapDialog::spawnWave()
     }
 
     waveText->setPlainText(QString("Wave: %1").arg(currentWave + 1)); // Update wave number displayed
-
 
     for (EnemyType etype : qAsConst(waveEnemies))
     {
