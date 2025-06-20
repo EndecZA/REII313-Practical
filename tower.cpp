@@ -4,7 +4,7 @@
 Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
 {
     setScale(0.5); // Halve the size of each tower on the scene (from 70x130px to 35x65px).
-    setOffset(-1, -towerH+24); // Adjust the datum for the tower.
+    setOffset(0, -towerH+24); // Adjust the datum for the tower.
 
     type = t;
     maxHealth = -1; // Default: Tower is unkillable.
@@ -17,11 +17,13 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
             animationFrames = 6;
             path = ":/resources/images/towers/barricade_tower.png";
             cost = 50; upgradeCost = 20; damage = 5; attackSpeed = 1; range = 1; piercing = 2; maxHealth = 25;
+            setOffset(0, -towerH+32); // Adjust the datum for the tower.
         break;
         case melee:
             animationFrames = 4;
             path = ":/resources/images/towers/melee_tower.png";
             cost = 75; upgradeCost = 25; damage = 15; attackSpeed = 3; range = 2; piercing = 4;
+            setOffset(0, -towerH+32); // Adjust the datum for the tower.
         break;
         case archer:
             animationFrames = 6;
@@ -32,11 +34,13 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
             animationFrames = 4;
             path = ":/resources/images/towers/fire_tower.png";
             cost = 150; upgradeCost = 50; damage = 50; attackSpeed = 1; range = 2; piercing = 3;
+            setOffset(0, -towerH+32); // Adjust the datum for the tower.
         break;
         case wizard:
             animationFrames = 4;
             path = ":/resources/images/towers/wizard_tower.png";
             cost = 200; upgradeCost = 50; damage = 100; attackSpeed = 0.5; range = 6; piercing = 1;
+            setOffset(0, -towerH+32); // Adjust the datum for the tower.
         break;
         case base:
             animationFrames = 6;

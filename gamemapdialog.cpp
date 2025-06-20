@@ -572,7 +572,7 @@ void GameMapDialog::startWave()
     nextWaveButton->setEnabled(false);
     nextWaveButton->setVisible(false);
     incrementWave(); // Move to next wave;
-    enemySpawnTimer->start(1500); // Spawn a new enemy every 1.5 seconds.
+    enemySpawnTimer->start(500); // Spawn a new enemy every 0.5 seconds.
 }
 
 void GameMapDialog::spawnEnemy()
