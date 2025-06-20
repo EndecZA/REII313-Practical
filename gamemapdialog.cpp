@@ -314,10 +314,13 @@ void GameMapDialog::drawMap()
                 gameScene->addItem(tileGrid[i][j]);
 
                 // Connect relevant signals to slots:
-                connect(tileGrid[i][j], &Tile::buildTower, this, &GameMapDialog::buildTower);
-                connect(tileGrid[i][j], &Tile::sellTower, this, &GameMapDialog::sellTower);
-                connect(tileGrid[i][j], &Tile::upgradeTower, this, &GameMapDialog::upgradeTower);
-                connect(tileGrid[i][j], &Tile::attackAnimation, this, &GameMapDialog::attackAnimation);
+                if (!tileGrid[i][j]->isBarrier)
+                {
+                    connect(tileGrid[i][j], &Tile::buildTower, this, &GameMapDialog::buildTower);
+                    connect(tileGrid[i][j], &Tile::sellTower, this, &GameMapDialog::sellTower);
+                    connect(tileGrid[i][j], &Tile::upgradeTower, this, &GameMapDialog::upgradeTower);
+                    connect(tileGrid[i][j], &Tile::attackAnimation, this, &GameMapDialog::attackAnimation);
+                }
             }
             else
             {
@@ -388,6 +391,7 @@ void GameMapDialog::drawMap()
     if (baseRow != -1 && baseCol != -1 && !spawnPoints.isEmpty()) // Map read successfully.
     {
         buildTower(base, baseRow, baseCol); // Build the base tower and run flooding algorithm.
+        connect(tileGrid[baseRow][baseCol]->tower, &Tower::gameLost, this, &GameMapDialog::gameLost);
 
         // Only start game if a valid map was read:
         gameTick->start(1000/frameRate);
@@ -939,6 +943,16 @@ void GameMapDialog::pauseGame()
     }
 }
 
+void GameMapDialog::gameLost()
+{
+    gameTick->stop();
+    enemyTick->stop();
+    enemySpawnTimer->stop();
+    GameLostDialog gameLostMenu(currentWave, this);
+    connect(&gameLostMenu, &GameLostDialog::exitGame, this, &GameMapDialog::onExitGame);
+    gameLostMenu.exec();
+}
+
 void GameMapDialog::resumeGame()
 {
     gameTick->start();
@@ -1042,7 +1056,6 @@ bool GameMapDialog::saveGameToFile(const QString& filename)
     qDebug() << "Game saved successfully to:" << filePath;
     return true;
 }
-
 
 void GameMapDialog::onExitGame()
 {

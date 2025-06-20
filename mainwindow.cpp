@@ -92,6 +92,7 @@ void MainWindow::onSinglePlayerClicked() {
         }
         gameMap->exec();
     }
+    showNormal();
 }
 
 void MainWindow::onMultiPlayerClicked()

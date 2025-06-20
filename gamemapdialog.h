@@ -26,6 +26,7 @@
 #include "enemy.h"
 #include "tower.h"
 #include "pausemenudialog.h"
+#include "gamelostdialog.h"
 
 enum difficulty
 {
@@ -86,6 +87,7 @@ public slots:
 private slots:
     void startWave();
     void spawnEnemy();
+    void gameLost();
 
 private:
     static const int tileSize = 32;

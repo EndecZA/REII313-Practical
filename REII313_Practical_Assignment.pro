@@ -12,6 +12,7 @@ CONFIG += c++11
 
 SOURCES += \
     enemy.cpp \
+    gamelostdialog.cpp \
     gamemapdialog.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -24,6 +25,7 @@ SOURCES += \
 
 HEADERS += \
     enemy.h \
+    gamelostdialog.h \
     gamemapdialog.h \
     mainwindow.h \
     multiplayeroptionsdialog.h \
