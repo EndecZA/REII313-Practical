@@ -11,6 +11,8 @@
 #include <QPen>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsItemGroup>
+#include <QGraphicsProxyWidget>
+#include <QPushButton>
 #include <QPixmap>
 #include <QFile>
 #include <QTimer>
@@ -50,9 +52,6 @@ public:
     void updateBitcoinDisplay();
     void updateWaveDisplay();
 
-
-    void spawnWave();
-
     enum difficulty gameDifficulty;
     enum map mapType;
     bool isMultiplayer;
@@ -84,7 +83,9 @@ public slots:
     void readClientData();
     void sendGameUpdate();
 
-
+private slots:
+    void startWave();
+    void spawnEnemy();
 
 private:
     static const int tileSize = 32;
@@ -99,16 +100,16 @@ private:
 
     QVector<Enemy*> enemies;
     QVector<Tower*> towers;
-    QVector<EnemyType> waveEnemies;
+    QQueue<Tile*> spawnPoints; // Queue used to cycle the spawning of enemies.
+    QQueue<EnemyType> waveEnemies; // Queue used to cycle over the types of enemies in each wave.
 
     int mapGrid[2*mapHeight][2*mapWidth];
     int barrierGrid[2*mapHeight][2*mapWidth];
     Tile *tileGrid[2*mapHeight][2*mapWidth];
-    QQueue<Tile*> spawnPoints; // Queue used to cycle the spawning of enemies.
+    int baseRow, baseCol; // Indices for base position.
 
     QTimer *gameTick;
     QTimer *enemyTick;
-    QTimer *waveTimer;
     QTimer *enemySpawnTimer;
 
     int currentEnemyIndex;
@@ -117,19 +118,21 @@ private:
     int enemiesToSpawn;
     int totalEnemiesPerWave;
     int bitcoinCount;
-    int baseRow, baseCol; // Indices for base position.
 
     QGraphicsTextItem *bitcoinText;
     QGraphicsTextItem *waveText;
     QGraphicsRectItem *bitcoinBackground;
     QGraphicsPixmapItem *bitcoinIcon;
     QGraphicsItemGroup *bitcoinGroup;
+    QGraphicsProxyWidget *buttonProxy;
+    QPushButton *nextWaveButton;
     PauseMenuDialog *pauseMenu;
 
     int savedBitcoinCount; // Added to keep track of saved bitcoin
 
     void updateGame();
     void tickEnemies();
+    void incrementWave();
     void pauseGame();
     void resumeGame();
 

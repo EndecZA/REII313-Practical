@@ -195,8 +195,6 @@ Enemy::Enemy(EnemyType t) : QObject(), QGraphicsPixmapItem(), justLoaded(false)
     }
 
     setTransformOriginPoint(boundingRect().center());
-
-    qDebug() << "Enemy type" << type << "created.";
 }
 
 int Enemy::getHealth()

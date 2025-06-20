@@ -12,7 +12,7 @@
 
 class GameMapDialog;
 
-enum EnemyType {Skeleton, Skeleton_Archer, Armoured_Skeleton, Wizard, Orc, Armoured_Orc, Elite_Orc, Orcastor, Knight, Knight_Templar, Werebear, Cleric };
+enum EnemyType {Skeleton, Skeleton_Archer, Armoured_Skeleton, Wizard, Orc, Armoured_Orc, Elite_Orc, Orcastor, Knight, Knight_Templar, Werebear, Cleric};
 enum EnemyState {Moving, Attacking, Damaged, Dying, Idle};
 
 class Enemy : public QObject, public QGraphicsPixmapItem
