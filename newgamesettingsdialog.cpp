@@ -29,6 +29,7 @@ NewGameSettingsDialog::NewGameSettingsDialog(QWidget *parent)
     // Difficulty combo box
     difficultyCombo = new QComboBox(this);
     difficultyCombo->addItems({"Easy", "Medium", "Hard"});
+    difficultyCombo->setCurrentIndex(1);
     difficultyCombo->setStyleSheet(
         "QComboBox {"
         "   background-color: #FFB347;"

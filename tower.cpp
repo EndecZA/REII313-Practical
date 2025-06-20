@@ -33,13 +33,13 @@ Tower::Tower(towerType t) : QObject(), QGraphicsPixmapItem()
         case fire:
             animationFrames = 4;
             path = ":/resources/images/towers/fire_tower.png";
-            cost = 150; upgradeCost = 50; damage = 50; attackSpeed = 1; range = 2; piercing = 3;
+            cost = 150; upgradeCost = 50; damage = 25; attackSpeed = 1; range = 2; piercing = 3;
             setOffset(0, -towerH+32); // Adjust the datum for the tower.
         break;
         case wizard:
             animationFrames = 4;
             path = ":/resources/images/towers/wizard_tower.png";
-            cost = 200; upgradeCost = 50; damage = 100; attackSpeed = 0.5; range = 6; piercing = 1;
+            cost = 200; upgradeCost = 50; damage = 50; attackSpeed = 0.5; range = 6; piercing = 1;
             setOffset(0, -towerH+32); // Adjust the datum for the tower.
         break;
         case base:
