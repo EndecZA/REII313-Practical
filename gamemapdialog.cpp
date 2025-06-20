@@ -27,8 +27,6 @@ GameMapDialog::GameMapDialog(QWidget *parent)
     tcpServer(nullptr),
     clientSocket(nullptr)
 {
-
-
     setModal(true);
     showMaximized();
     setFixedSize(1920,1080);
@@ -68,6 +66,10 @@ GameMapDialog::GameMapDialog(QWidget *parent)
 
     enemyTick = new QTimer(this);
     connect(enemyTick, &QTimer::timeout, this, &GameMapDialog::tickEnemies);
+
+    waveTimeout = new QTimer(this);
+    waveTimeout->setSingleShot(true);
+    connect(waveTimeout, &QTimer::timeout, this, &GameMapDialog::startWave);
 
     pauseMenu = nullptr;
 
@@ -453,12 +455,14 @@ void GameMapDialog::floodFill()
         int dist = tile->dist;
 
         // Iterate over all eight adjacent tiles:
-        for (int i = 0; i < 8; ++i)
+        QVector<int> directions = {0, 1, 2, 3, 4, 5, 6, 7};
+        std::random_shuffle(directions.begin(), directions.end()); // Randomly prioritize different directions to make movement unpredictable.
+        for (int dir : directions)
         {
             int adjRow = row;
             int adjCol = col;
             bool addToQueue = true;
-            switch (i)
+            switch (dir)
             {
                 case 0: // NW:
                     --adjRow;
@@ -573,10 +577,38 @@ void GameMapDialog::floodFill()
 
 void GameMapDialog::startWave()
 {
+    waveStopped = false; // Next wave has started.
+
+    // Stop timeout timer if the next wave button was clicked.
+    if (waveTimeout->isActive())
+    {
+        waveTimeout->stop();
+    }
+
     nextWaveButton->setEnabled(false);
     nextWaveButton->setVisible(false);
+
     incrementWave(); // Move to next wave;
-    enemySpawnTimer->start(500); // Spawn a new enemy every 0.5 seconds.
+
+    // Modify spawn rate based on difficulty:
+    switch (gameDifficulty)
+    {
+    case easy:
+        enemySpawnTimer->start(1500); // Spawn a new enemy every 1.5 seconds.
+        break;
+    default:
+        [[fallthrough]];
+    case medium:
+        enemySpawnTimer->start(1000); // Spawn a new enemy every 1 second.
+        break;
+    case hard:
+        enemySpawnTimer->start(500); // Spawn a new enemy every 0.5 seconds.
+        break;
+    }
+
+    floodFill(); // Recalculate shortest paths.
+
+    qDebug() << "Next wave has been started.";
 }
 
 void GameMapDialog::spawnEnemy()
@@ -781,11 +813,19 @@ void GameMapDialog::updateGame()
     updateBitcoinDisplay();
     updateWaveDisplay();
 
-    if (enemiesToSpawn <= 0)
+    // Wait untill next wave is triggered:
+    if (enemiesToSpawn <= 0 &&  !waveStopped)
     {
+        waveStopped = true; // Current wave is stopped.
+
         enemySpawnTimer->stop();
         nextWaveButton->setEnabled(true);
         nextWaveButton->setVisible(true);
+
+        // Wait 10 seconds before auto starting next wave:
+        waveTimeout->start(10000);
+
+        qDebug() << "Current wave has ended.";
     }
 }
 
@@ -934,6 +974,7 @@ void GameMapDialog::pauseGame()
     if (!pauseMenu) {
         gameTick->stop();
         enemyTick->stop();
+        waveStopped = true;
         enemySpawnTimer->stop();
         pauseMenu = new PauseMenuDialog(this);
         connect(pauseMenu, &PauseMenuDialog::resumeGame, this, &GameMapDialog::onResumeGame);
@@ -957,6 +998,7 @@ void GameMapDialog::resumeGame()
 {
     gameTick->start();
     enemyTick->start();
+    waveStopped = false;
     enemySpawnTimer->start();
     pauseMenu = nullptr;
 }

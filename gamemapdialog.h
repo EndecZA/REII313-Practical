@@ -113,12 +113,14 @@ private:
     QTimer *gameTick;
     QTimer *enemyTick;
     QTimer *enemySpawnTimer;
+    QTimer *waveTimeout;
 
     int currentEnemyIndex;
 
     int currentWave;
     int enemiesToSpawn;
     int totalEnemiesPerWave;
+    bool waveStopped;
     int bitcoinCount;
 
     QGraphicsTextItem *bitcoinText;
